@@ -1,0 +1,9 @@
+DNN Surrogate Model Performance
+================================
+Energy consumption (kWh/km):
+  R²  = 0.9962
+  MAE = 3.3425
+
+Regen percentage (%):
+  R²  = 0.9331
+  MAE = 0.5007

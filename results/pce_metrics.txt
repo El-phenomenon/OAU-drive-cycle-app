@@ -1,0 +1,9 @@
+PCE Surrogate Model Performance
+================================
+Energy consumption:
+  R²  = 1.0000
+  MAE = 0.1985 kWh/km
+
+Regen percentage:
+  R²  = 0.9978
+  MAE = 0.0853 %
