@@ -49,27 +49,28 @@ def predict_pce(X_df):
 # ------------------------------
 # DNN Prediction (supports .tflite)
 # ------------------------------
-def predict_dnn(X_df):
-    X = X_df[FEATURE_ORDER].values
-    scaler = _load_scaler()
-    if scaler is not None:
-        X = scaler.transform(X)
 
-    if os.path.exists(DNN_TFLITE_PATH):
-        # --- Use TFLite version ---
-        interpreter = tf.lite.Interpreter(model_path=DNN_TFLITE_PATH)
-        interpreter.allocate_tensors()
-        input_details = interpreter.get_input_details()
-        output_details = interpreter.get_output_details()
+   def _load_dnn():
+    import os
+    import numpy as np
+    model_path_tflite = os.path.join("results", "dnn_surrogate.tflite")
 
-        interpreter.set_tensor(input_details[0]['index'], X.astype(np.float32))
+    try:
+        import tflite_runtime.interpreter as tflite
+        interpreter = tflite.Interpreter(model_path=model_path_tflite)
+    except Exception:
+        import tensorflow as tf
+        interpreter = tf.lite.Interpreter(model_path=model_path_tflite)
+
+    interpreter.allocate_tensors()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+
+    def predict(X):
+        X = np.array(X, dtype=np.float32)
+        interpreter.set_tensor(input_details[0]['index'], X)
         interpreter.invoke()
-        Y_pred = interpreter.get_tensor(output_details[0]['index'])
-    elif os.path.exists(DNN_H5_PATH):
-        # --- Fallback to .h5 if running locally ---
-        model = tf.keras.models.load_model(DNN_H5_PATH, compile=False)
-        Y_pred = model.predict(X)
-    else:
-        raise RuntimeError("No DNN model found (.tflite or .h5).")
+        return interpreter.get_tensor(output_details[0]['index'])
 
+    return predict
     return pd.DataFrame(Y_pred, columns=["energy_kwh_per_km", "regen_pct"])
