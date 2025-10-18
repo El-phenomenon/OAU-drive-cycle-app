@@ -2,11 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import joblib
-# For TensorFlow Lite runtime
-try:
-    from tflite_runtime.interpreter import Interpreter
-except ImportError:
-    from tensorflow.lite.python.interpreter import Interpreter
+import tensorflow as tf
 # ------------------------------------------------------------
 # Paths
 # ------------------------------------------------------------
@@ -34,14 +30,15 @@ def _load_pce():
 
 
 def _load_dnn():
-    """Load TensorFlow Lite model (converted from DNN)."""
-    if os.path.exists(DNN_TFLITE_PATH):
-        interpreter = Interpreter(model_path=DNN_TFLITE_PATH)
-        interpreter.allocate_tensors()
-        return interpreter
-    return None
-
-
+    if not os.path.exists(DNN_MODEL_PATH):
+        print("⚠ DNN model not found.")
+        return None
+    try:
+        model = tf.keras.models.load_model(DNN_MODEL_PATH, compile=False)
+        return model
+    except Exception as e:
+        print(f"⚠ Could not load DNN: {e}")
+        return None
 def _load_scaler():
     """Load the input scaler if available."""
     if os.path.exists(SCALER_PATH):
