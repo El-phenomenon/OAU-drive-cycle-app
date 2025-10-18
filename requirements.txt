@@ -5,3 +5,4 @@ matplotlib
 scikit-learn
 joblib
 SALib
+tflite-runtime==2.14.0
