@@ -2,9 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import joblib
-import tensorflow.lite as tflite
-
-
+import tflite_runtime.interpreter as tflite
 # For TensorFlow Lite runtime
 try:
     from tflite_runtime.interpreter import Interpreter
@@ -14,7 +12,7 @@ except ImportError:
 # ------------------------------------------------------------
 # Paths
 # ------------------------------------------------------------
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file_)))
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
 PCE_MODEL_PATH = os.path.join(RESULTS_DIR, "pce_surrogate.pkl")
@@ -74,29 +72,25 @@ def predict_pce(X_df):
 # ------------------------------------------------------------
 # DNN Prediction (TensorFlow Lite)
 # ------------------------------------------------------------
-# Load TFLite DNN model
-DNN_TFLITE_PATH = "results/dnn_surrogate.tflite"
+def predict_dnn(X_df):
+    """Predict using DNN surrogate (TensorFlow Lite)."""
+    interpreter = _load_dnn()
+    if interpreter is None:
+        raise RuntimeError("TFLite DNN model not found.")
 
-interpreter = tflite.Interpreter(model_path=DNN_TFLITE_PATH)
-interpreter.allocate_tensors()
+    scaler = _load_scaler()
+    X = X_df[FEATURE_ORDER].values.astype(np.float32)
+    if scaler is not None:
+        X = scaler.transform(X).astype(np.float32)
 
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
 
-def predict_dnn(X_df: pd.DataFrame) -> pd.DataFrame:
-    X = X_df.to_numpy().astype(np.float32)
+    interpreter.set_tensor(input_details[0]["index"], X)
+    interpreter.invoke()
+    Y_pred = interpreter.get_tensor(output_details[0]["index"])
 
-    y_energy = []
-    y_regen = []
-
-    for row in X:
-        interpreter.set_tensor(input_details[0]['index'], row.reshape(1, -1))
-        interpreter.invoke()
-        output = interpreter.get_tensor(output_details[0]['index']).flatten()
-        y_energy.append(output[0])
-        y_regen.append(output[1])
-
-    return pd.DataFrame({
-        "energy_kwh_per_km": y_energy,
-        "regen_pct": y_regen
-    })
+    return pd.DataFrame(
+        Y_pred,
+        columns=["energy_kwh_per_km", "regen_pct"]
+    )
