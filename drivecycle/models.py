@@ -2,17 +2,15 @@ import os
 import pandas as pd
 import numpy as np
 import joblib
-import tflite_runtime.interpreter as tflite
 # For TensorFlow Lite runtime
 try:
     from tflite_runtime.interpreter import Interpreter
 except ImportError:
-    from tensorflow.lite.python.interpreter import Interpreter
-
+    Interpreter = None
 # ------------------------------------------------------------
 # Paths
 # ------------------------------------------------------------
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file_)))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
 PCE_MODEL_PATH = os.path.join(RESULTS_DIR, "pce_surrogate.pkl")
