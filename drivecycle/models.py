@@ -2,7 +2,8 @@ import os
 import pandas as pd
 import numpy as np
 import joblib
-import tensorflow as tf
+import tensorflow as tf   # use TensorFlow CPU runtime (no tflite_runtime)
+
 # ------------------------------------------------------------
 # Paths
 # ------------------------------------------------------------
@@ -10,7 +11,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
 PCE_MODEL_PATH = os.path.join(RESULTS_DIR, "pce_surrogate.pkl")
-DNN_TFLITE_PATH = os.path.join(RESULTS_DIR, "dnn_surrogate.tflite")
+DNN_MODEL_PATH = os.path.join(RESULTS_DIR, "dnn_surrogate.h5")
 SCALER_PATH = os.path.join(RESULTS_DIR, "input_scaler.pkl")
 
 FEATURE_ORDER = [
@@ -30,15 +31,16 @@ def _load_pce():
 
 
 def _load_dnn():
+    """Load Keras DNN model (.h5) for inference."""
     if not os.path.exists(DNN_MODEL_PATH):
-        print("⚠ DNN model not found.")
-        return None
+        raise RuntimeError("❌ DNN .h5 model not found in results/")
     try:
         model = tf.keras.models.load_model(DNN_MODEL_PATH, compile=False)
         return model
     except Exception as e:
-        print(f"⚠ Could not load DNN: {e}")
-        return None
+        raise RuntimeError(f"❌ Failed to load DNN model: {e}")
+
+
 def _load_scaler():
     """Load the input scaler if available."""
     if os.path.exists(SCALER_PATH):
@@ -52,7 +54,7 @@ def predict_pce(X_df):
     """Predict using Polynomial Chaos Expansion surrogate."""
     pce = _load_pce()
     if pce is None:
-        raise RuntimeError("PCE surrogate model not found.")
+        raise RuntimeError("❌ PCE surrogate model not found.")
     poly, model = pce
 
     X = X_df[FEATURE_ORDER].values
@@ -65,26 +67,18 @@ def predict_pce(X_df):
     )
 
 # ------------------------------------------------------------
-# DNN Prediction (TensorFlow Lite)
+# DNN Prediction (Keras)
 # ------------------------------------------------------------
 def predict_dnn(X_df):
-    """Predict using DNN surrogate (TensorFlow Lite)."""
-    interpreter = _load_dnn()
-    if interpreter is None:
-        raise RuntimeError("TFLite DNN model not found.")
-
+    """Predict using the DNN .h5 model."""
+    model = _load_dnn()
     scaler = _load_scaler()
+
     X = X_df[FEATURE_ORDER].values.astype(np.float32)
     if scaler is not None:
         X = scaler.transform(X).astype(np.float32)
 
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-
-    interpreter.set_tensor(input_details[0]["index"], X)
-    interpreter.invoke()
-    Y_pred = interpreter.get_tensor(output_details[0]["index"])
-
+    Y_pred = model.predict(X)
     return pd.DataFrame(
         Y_pred,
         columns=["energy_kwh_per_km", "regen_pct"]
