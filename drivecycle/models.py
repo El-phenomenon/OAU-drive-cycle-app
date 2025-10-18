@@ -1,76 +1,102 @@
-# drivecycle/models.py
 import os
-import joblib
-import numpy as np
 import pandas as pd
+import numpy as np
+import joblib
+import tensorflow.lite as tflite
 
-# --- For TFLite inference ---
-import tensorflow as tf
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(_file_)))
+# For TensorFlow Lite runtime
+try:
+    from tflite_runtime.interpreter import Interpreter
+except ImportError:
+    from tensorflow.lite.python.interpreter import Interpreter
+
+# ------------------------------------------------------------
+# Paths
+# ------------------------------------------------------------
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
-# File paths
 PCE_MODEL_PATH = os.path.join(RESULTS_DIR, "pce_surrogate.pkl")
 DNN_TFLITE_PATH = os.path.join(RESULTS_DIR, "dnn_surrogate.tflite")
-DNN_H5_PATH = os.path.join(RESULTS_DIR, "dnn_surrogate.h5")
 SCALER_PATH = os.path.join(RESULTS_DIR, "input_scaler.pkl")
 
 FEATURE_ORDER = [
     "MASS", "HW", "RRC", "Ta", "Tb",
-    "SoC_pct", "BAge_pct", "MR_mOhm", "AUX_kW", "BR_pct"
+    "SoC_pct", "BAge_pct", "MR_mOhm",
+    "AUX_kW", "BR_pct"
 ]
 
-# ------------------------------
-# LOADERS
-# ------------------------------
-def _load_scaler():
-    if os.path.exists(SCALER_PATH):
-        return joblib.load(SCALER_PATH)
-    return None
-
+# ------------------------------------------------------------
+# Load Models
+# ------------------------------------------------------------
 def _load_pce():
+    """Load the saved Polynomial Chaos Expansion model."""
     if os.path.exists(PCE_MODEL_PATH):
         return joblib.load(PCE_MODEL_PATH)
     return None
 
-# ------------------------------
+
+def _load_dnn():
+    """Load TensorFlow Lite model (converted from DNN)."""
+    if os.path.exists(DNN_TFLITE_PATH):
+        interpreter = Interpreter(model_path=DNN_TFLITE_PATH)
+        interpreter.allocate_tensors()
+        return interpreter
+    return None
+
+
+def _load_scaler():
+    """Load the input scaler if available."""
+    if os.path.exists(SCALER_PATH):
+        return joblib.load(SCALER_PATH)
+    return None
+
+# ------------------------------------------------------------
 # PCE Prediction
-# ------------------------------
+# ------------------------------------------------------------
 def predict_pce(X_df):
+    """Predict using Polynomial Chaos Expansion surrogate."""
     pce = _load_pce()
     if pce is None:
-        raise RuntimeError("PCE model not found.")
+        raise RuntimeError("PCE surrogate model not found.")
     poly, model = pce
+
     X = X_df[FEATURE_ORDER].values
-    Y_pred = model.predict(poly.transform(X))
-    return pd.DataFrame(Y_pred, columns=["energy_kwh_per_km", "regen_pct"])
+    X_poly = poly.transform(X)
+    Y_pred = model.predict(X_poly)
 
-# ------------------------------
-# DNN Prediction (supports .tflite)
-# ------------------------------
+    return pd.DataFrame(
+        Y_pred,
+        columns=["energy_kwh_per_km", "regen_pct"]
+    )
 
-   def _load_dnn():
-    import os
-    import numpy as np
-    model_path_tflite = os.path.join("results", "dnn_surrogate.tflite")
+# ------------------------------------------------------------
+# DNN Prediction (TensorFlow Lite)
+# ------------------------------------------------------------
+# Load TFLite DNN model
+DNN_TFLITE_PATH = "results/dnn_surrogate.tflite"
 
-    try:
-        import tflite_runtime.interpreter as tflite
-        interpreter = tflite.Interpreter(model_path=model_path_tflite)
-    except Exception:
-        import tensorflow as tf
-        interpreter = tf.lite.Interpreter(model_path=model_path_tflite)
+interpreter = tflite.Interpreter(model_path=DNN_TFLITE_PATH)
+interpreter.allocate_tensors()
 
-    interpreter.allocate_tensors()
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 
-    def predict(X):
-        X = np.array(X, dtype=np.float32)
-        interpreter.set_tensor(input_details[0]['index'], X)
+def predict_dnn(X_df: pd.DataFrame) -> pd.DataFrame:
+    X = X_df.to_numpy().astype(np.float32)
+
+    y_energy = []
+    y_regen = []
+
+    for row in X:
+        interpreter.set_tensor(input_details[0]['index'], row.reshape(1, -1))
         interpreter.invoke()
-        return interpreter.get_tensor(output_details[0]['index'])
+        output = interpreter.get_tensor(output_details[0]['index']).flatten()
+        y_energy.append(output[0])
+        y_regen.append(output[1])
 
-    return predict
-    return pd.DataFrame(Y_pred, columns=["energy_kwh_per_km", "regen_pct"])
+    return pd.DataFrame({
+        "energy_kwh_per_km": y_energy,
+        "regen_pct": y_regen
+    })
