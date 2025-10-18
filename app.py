@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from drivecycle.io import load_cycle #Local module imports
+
+# Local module imports
+from drivecycle.io import load_cycle
 from drivecycle.simulation import integrate_energy_for_cycle
 from drivecycle.models import predict_pce, predict_dnn
 from drivecycle.sensitivity import run_sobol, plot_sobol
@@ -38,38 +40,36 @@ section[data-testid="stSidebar"] {
 # ------------------------------------------------------------
 col1, col2, col3 = st.columns([1, 3, 1])
 with col1:
-    st.image("photos/OAU_logo.png", width=70, use_container_width=False, output_format='PNG')
-    st.markdown("<div style='margin-left':50px;'></div>", 
-    unsafe_allow_html = True)
+    st.image("photos/OAU_logo.png", width=70)
 with col2:
     st.markdown(
-        "<h2 style='text-align:center; color:#004aad;'>"
-        "OAU Drive Cycle Energy Simulator"
-        "</h2>",
+        "<h2 style='text-align:center; color:#004aad;'>OAU Drive Cycle Energy Simulator</h2>",
         unsafe_allow_html=True
     )
 with col3:
     st.image("photos/Mech.png", width=70)
+
 st.markdown("<hr>", unsafe_allow_html=True)
 
 # ------------------------------------------------------------
-# ------------------------------------------------------------
-# ------------------------------------------------------------
 # Sidebar branding (logos side-by-side)
 # ------------------------------------------------------------
-col1, col2 = st.sidebar.columns([1, 1])
-with col1:
+scol1, scol2 = st.sidebar.columns([1, 1])
+with scol1:
     st.image("photos/OAU_logo.png", width=50)
-with col2:
-    st.image("photos/Mech.png", width=40)
+with scol2:
+    st.image("photos/Mech.png", width=50)
 
 st.sidebar.markdown(
-    "<div style='text-align:center; font-size:13px; line-height:1.3; color:#004aad;'>"
-    "<b>Obafemi Awolowo University</b><br>"
-    "Department of Mechanical Engineering"
-    "</div>",
+    """
+    <div style='text-align:center; font-size:13px; line-height:1.3; color:#004aad;'>
+    <b>Obafemi Awolowo University</b><br>
+    Department of Mechanical Engineering
+    </div>
+    """,
     unsafe_allow_html=True
 )
+
 # ------------------------------------------------------------
 # About / Description
 # ------------------------------------------------------------
@@ -77,7 +77,8 @@ with st.expander("ℹ About this App", expanded=False):
     st.markdown("""
     *OAU Drive Cycle Energy Simulator*
 
-    Developed from the research project “Evolution of a Novel Drive Cycle for Energy Prediction of EV vehicles” at *Obafemi Awolowo University (OAU), Ile-Ife, Nigeria.*
+    Developed from the research project “Evolution of a Novel Drive Cycle for Energy Prediction of EV Vehicles”  
+    at Obafemi Awolowo University (OAU), Ile-Ife, Nigeria.
 
     ---
     ### 🔍 What it does
@@ -90,20 +91,24 @@ with st.expander("ℹ About this App", expanded=False):
 
     ---
     ### 🧩 Key Features
-    - Upload custom drive cycles
-    - Compare ECB, PCE, and DNN models
-    - Visualize top 4 most influential factors
-    - Designed for EV researchers, engineers, and students
+    - Upload custom drive cycles  
+    - Compare ECB, PCE, and DNN models  
+    - Visualize top 4 most influential factors  
+    - Designed for EV researchers, engineers, and students  
 
     ---
-    *Authors:* Blessing Babatope, Gabriel Oke, Prof. B.O. Malomo.  
+    *Authors:* Blessing Babatope, Gabriel Oke, Prof. B.O. Malomo  
     *Institution:* Department of Mechanical Engineering, OAU, Ile-Ife, Nigeria  
     """)
 
 # ------------------------------------------------------------
 # Tabs
 # ------------------------------------------------------------
-tabs = st.tabs(["🧮 Physics Model", "🤖 Surrogate Models (PCE & DNN)", "📊 Sensitivity Analysis"])
+tabs = st.tabs([
+    "🧮 Physics Model",
+    "🤖 Surrogate Models (PCE & DNN)",
+    "📊 Sensitivity Analysis"
+])
 
 # ============================================================
 # TAB 1 — PHYSICS MODEL
@@ -113,7 +118,7 @@ with tabs[0]:
 
     st.sidebar.header("Simulation Inputs")
 
-    # Include all 10 major parameters
+    # 10 major parameters
     mass = st.sidebar.number_input("Vehicle Mass (kg)", 2000, 6000, 3300, step=50)
     hw = st.sidebar.number_input("Headwind (m/s)", -5.0, 5.0, 0.0, step=0.5)
     rrc = st.sidebar.number_input("Rolling Resistance (RRC)", 0.005, 0.02, 0.010, step=0.001)
@@ -151,7 +156,6 @@ with tabs[0]:
             cols[1].metric("Regeneration (%)", f"{result['regen_pct']:.2f}")
             cols[2].metric("Distance (km)", f"{result['distance_km']:.2f}")
 
-            # Plot drive cycle
             fig, ax = plt.subplots(figsize=(7, 3))
             ax.plot(df["time_s"], df["speed_m_s"], color="blue", label="Speed (m/s)")
             ax.set_xlabel("Time (s)")
@@ -196,8 +200,8 @@ with tabs[1]:
             dnn_out = predict_dnn(input_df)
 
         st.subheader("Predicted Outputs")
-        st.write("*PCE Output:*", pce_out.to_dict(orient="records")[0])
-        st.write("*DNN Output:*", dnn_out.to_dict(orient="records")[0])
+        st.write("PCE Output:", pce_out.to_dict(orient="records")[0])
+        st.write("DNN Output:", dnn_out.to_dict(orient="records")[0])
 
 # ============================================================
 # TAB 3 — SENSITIVITY ANALYSIS
@@ -228,6 +232,6 @@ with tabs[2]:
 st.markdown("""
 ---
 <div style='text-align:center; font-size: small; color: grey;'>
-Developed by Prof. B.O. Malomo, Blessing Babatope and Gabriel Oke  | Department of Mechanical Engineering, OAU, Ile-Ife
+Developed by Prof. B.O. Malomo, Blessing Babatope and Gabriel Oke | Department of Mechanical Engineering, OAU, Ile-Ife
 </div>
 """, unsafe_allow_html=True)
