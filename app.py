@@ -1,9 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-
-# Local module imports
-from drivecycle.io import load_cycle
+from drivecycle.io import load_cycle #Local module imports
 from drivecycle.simulation import integrate_energy_for_cycle
 from drivecycle.models import predict_pce, predict_dnn
 from drivecycle.sensitivity import run_sobol, plot_sobol
