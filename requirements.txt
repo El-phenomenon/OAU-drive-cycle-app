@@ -3,6 +3,6 @@ pandas
 numpy
 matplotlib
 scikit-learn
-tflite-runtime==2.14.0
-SALib
 joblib
+SALib
+tflite-runtime==2.14.0
