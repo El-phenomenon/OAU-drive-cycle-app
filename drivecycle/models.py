@@ -5,10 +5,8 @@ import joblib
 # For TensorFlow Lite runtime
 try:
     from tflite_runtime.interpreter import Interpreter
-import Interpreter
 except ImportError:
-    from tflite_support.task.core
-import Interpreter
+    from tensorflow.lite.python.interpreter import Interpreter
 # ------------------------------------------------------------
 # Paths
 # ------------------------------------------------------------
