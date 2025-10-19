@@ -84,7 +84,7 @@ with st.expander("ℹ About this App", expanded=False):
     ### 🔍 What it does
     - Physics-Based Model (ECB):  
       Estimates energy consumption and regeneration from real drive cycles.
-    - Surrogate Models (PCE & DNN):  
+    - Surrogate Models (Polynomial Chaos Expansion (PCE) & Deep Neural Network (DNN)):  
       Provide rapid energy and regeneration predictions using 10 calibrated factors.
     - Sensitivity Analysis:  
       Identifies the most influential input factors using Sobol indices.
@@ -120,15 +120,15 @@ with tabs[0]:
 
     # 10 major parameters
     mass = st.sidebar.number_input("Vehicle Mass (kg)", 2000, 6000, 3300, step=50)
-    hw = st.sidebar.number_input("Headwind (m/s)", -5.0, 5.0, 0.0, step=0.5)
+    hw = st.sidebar.number_input("Headwind, HW (m/s)", -5.0, 5.0, 0.0, step=0.5)
     rrc = st.sidebar.number_input("Rolling Resistance (RRC)", 0.005, 0.02, 0.010, step=0.001)
-    ta = st.sidebar.number_input("Ambient Temperature (°C)", 10, 40, 25, step=1)
-    tb = st.sidebar.number_input("Battery Temperature (°C)", 15, 40, 25, step=1)
-    soc = st.sidebar.number_input("State of Charge (%)", 50, 100, 80, step=5)
-    bage = st.sidebar.number_input("Battery Age (%)", 0, 20, 5, step=1)
-    mr = st.sidebar.number_input("Motor Resistance (mΩ)", 40.0, 70.0, 55.0, step=0.5)
-    aux = st.sidebar.number_input("Auxiliary Load (kW)", 0.0, 10.0, 1.0, step=0.1)
-    br = st.sidebar.number_input("Battery Resistance Growth (%)", 80, 150, 100, step=5)
+    ta = st.sidebar.number_input("Ambient Temperature, Ta (°C)", 10, 40, 25, step=1)
+    tb = st.sidebar.number_input("Battery Temperature, Tb (°C)", 15, 40, 25, step=1)
+    soc = st.sidebar.number_input("State of Charge, soc_pct (%)", 50, 100, 80, step=5)
+    bage = st.sidebar.number_input("Battery Age, Bage_pct (%)", 0, 20, 5, step=1)
+    mr = st.sidebar.number_input("Motor Resistance, mr (mΩ)", 40.0, 70.0, 55.0, step=0.5)
+    aux = st.sidebar.number_input("Auxiliary Load, Aux_kW", 0.0, 10.0, 1.0, step=0.1)
+    br = st.sidebar.number_input("Battery Resistance Growth, BR_pct(%)", 80, 150, 100, step=5)
 
     uploaded_file = st.file_uploader("Upload Drive Cycle CSV", type=["csv"])
 
