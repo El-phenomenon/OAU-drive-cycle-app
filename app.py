@@ -77,8 +77,7 @@ with st.expander("ℹ About this App", expanded=False):
     st.markdown("""
     OAU Drive Cycle Energy Simulator
 
-    Developed from the research project “Evolution of a Novel Drive Cycle for Energy Prediction of EV Vehicles”  
-    at Obafemi Awolowo University (OAU), Ile-Ife, Nigeria.
+    Developed from the research project “Evolution of a Novel Drive Cycle for Energy Prediction of EV Vehicles” at Obafemi Awolowo University (OAU), Ile-Ife, Nigeria.
 
     ---
     ### 🔍 What it does
