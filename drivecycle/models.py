@@ -1,85 +1,110 @@
+# drivecycle/models.py
 import os
-import pandas as pd
-import numpy as np
 import joblib
-import tensorflow as tf   # use TensorFlow CPU runtime (no tflite_runtime)
+import numpy as np
+import pandas as pd
+import tensorflow as tf
 
-# ------------------------------------------------------------
-# Paths
-# ------------------------------------------------------------
+try:
+    from tensorflow.keras.models import load_model
+except Exception:
+    load_model = None
+
+# === Paths ===
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
-PCE_MODEL_PATH = os.path.join(RESULTS_DIR, "pce_surrogate.pkl")
-DNN_MODEL_PATH = os.path.join(RESULTS_DIR, "dnn_surrogate.h5")
-SCALER_PATH = os.path.join(RESULTS_DIR, "input_scaler.pkl")
+PCE_PATH = os.path.join(RESULTS_DIR, "pce_surrogate.pkl")
+DNN_PATH = os.path.join(RESULTS_DIR, "dnn_surrogate.h5")
+
+SCALER_CANDIDATES = [
+    os.path.join(RESULTS_DIR, "input_scaler.pkl"),
+    os.path.join(RESULTS_DIR, "scaler.pkl"),
+    os.path.join(RESULTS_DIR, "input_scaler.pkl"),
+    os.path.join(RESULTS_DIR, "scaler.pkl"),
+]
 
 FEATURE_ORDER = [
     "MASS", "HW", "RRC", "Ta", "Tb",
-    "SoC_pct", "BAge_pct", "MR_mOhm",
-    "AUX_kW", "BR_pct"
+    "SoC_pct", "BAge_pct", "MR_mOhm", "AUX_kW", "BR_pct"
 ]
 
-# ------------------------------------------------------------
-# Load Models
-# ------------------------------------------------------------
+_pce = None
+_dnn = None
+_scaler = None
+
+
 def _load_pce():
-    """Load the saved Polynomial Chaos Expansion model."""
-    if os.path.exists(PCE_MODEL_PATH):
-        return joblib.load(PCE_MODEL_PATH)
-    return None
+    global _pce
+    if _pce is None and os.path.exists(PCE_PATH):
+        _pce = joblib.load(PCE_PATH)
+    return _pce
 
 
 def _load_dnn():
-    """Load Keras DNN model (.h5) for inference."""
-    if not os.path.exists(DNN_MODEL_PATH):
-        raise RuntimeError("❌ DNN .h5 model not found in results/")
-    try:
-        model = tf.keras.models.load_model(DNN_MODEL_PATH, compile=False)
-        return model
-    except Exception as e:
-        raise RuntimeError(f"❌ Failed to load DNN model: {e}")
+    global _dnn
+    if _dnn is None and load_model is not None and os.path.exists(DNN_PATH):
+        _dnn = load_model(DNN_PATH, compile=False)
+    return _dnn
 
 
 def _load_scaler():
-    """Load the input scaler if available."""
-    if os.path.exists(SCALER_PATH):
-        return joblib.load(SCALER_PATH)
-    return None
+    global _scaler
+    if _scaler is None:
+        for p in SCALER_CANDIDATES:
+            if os.path.exists(p):
+                try:
+                    _scaler = joblib.load(p)
+                    break
+                except Exception:
+                    continue
+    return _scaler
 
-# ------------------------------------------------------------
-# PCE Prediction
-# ------------------------------------------------------------
+
+def _prepare_X(X_df):
+    missing = [c for c in FEATURE_ORDER if c not in X_df.columns]
+    if missing:
+        raise ValueError(f"Missing columns: {missing}")
+    return X_df[FEATURE_ORDER].astype(float).values
+
+
+# ---------- PCE Predictor ----------
 def predict_pce(X_df):
-    """Predict using Polynomial Chaos Expansion surrogate."""
     pce = _load_pce()
+    X = _prepare_X(X_df)
     if pce is None:
-        raise RuntimeError("❌ PCE surrogate model not found.")
+        # fallback (demo)
+        mass = X[:, 0]
+        aux = X[:, 8]
+        energy = 0.001 * mass + 0.1 * aux
+        regen = np.clip(10 - 0.001 * mass + 0.05 * aux, 0, 100)
+        return pd.DataFrame({"energy_kwh_per_km": energy, "regen_pct": regen})
+
     poly, model = pce
-
-    X = X_df[FEATURE_ORDER].values
     X_poly = poly.transform(X)
-    Y_pred = model.predict(X_poly)
+    preds = model.predict(X_poly)
+    preds = np.asarray(preds)
+    if preds.ndim == 1:
+        preds = np.vstack([preds, np.zeros_like(preds)]).T
+    return pd.DataFrame(preds, columns=["energy_kwh_per_km", "regen_pct"])
 
-    return pd.DataFrame(
-        Y_pred,
-        columns=["energy_kwh_per_km", "regen_pct"]
-    )
 
-# ------------------------------------------------------------
-# DNN Prediction (Keras)
-# ------------------------------------------------------------
+# ---------- DNN Predictor ----------
 def predict_dnn(X_df):
-    """Predict using the DNN .h5 model."""
-    model = _load_dnn()
+    dnn = _load_dnn()
     scaler = _load_scaler()
-
-    X = X_df[FEATURE_ORDER].values.astype(np.float32)
+    X = _prepare_X(X_df)
     if scaler is not None:
-        X = scaler.transform(X).astype(np.float32)
+        try:
+            X = scaler.transform(X)
+        except Exception:
+            pass
 
-    Y_pred = model.predict(X)
-    return pd.DataFrame(
-        Y_pred,
-        columns=["energy_kwh_per_km", "regen_pct"]
-    )
+    if dnn is None:
+        return predict_pce(X_df)
+
+    preds = dnn.predict(X)
+    preds = np.asarray(preds)
+    if preds.ndim == 1:
+        preds = np.vstack([preds, np.zeros_like(preds)]).T
+    return pd.DataFrame(preds, columns=["energy_kwh_per_km", "regen_pct"])

@@ -75,18 +75,18 @@ st.sidebar.markdown(
 # ------------------------------------------------------------
 with st.expander("ℹ About this App", expanded=False):
     st.markdown("""
-    *OAU Drive Cycle Energy Simulator*
+    OAU Drive Cycle Energy Simulator
 
     Developed from the research project “Evolution of a Novel Drive Cycle for Energy Prediction of EV Vehicles”  
     at Obafemi Awolowo University (OAU), Ile-Ife, Nigeria.
 
     ---
     ### 🔍 What it does
-    - *Physics-Based Model (ECB):*  
+    - Physics-Based Model (ECB):  
       Estimates energy consumption and regeneration from real drive cycles.
-    - *Surrogate Models (PCE & DNN):*  
+    - Surrogate Models (PCE & DNN):  
       Provide rapid energy and regeneration predictions using 10 calibrated factors.
-    - *Sensitivity Analysis:*  
+    - Sensitivity Analysis:  
       Identifies the most influential input factors using Sobol indices.
 
     ---
@@ -97,8 +97,8 @@ with st.expander("ℹ About this App", expanded=False):
     - Designed for EV researchers, engineers, and students  
 
     ---
-    *Authors:* Blessing Babatope, Gabriel Oke, Prof. B.O. Malomo  
-    *Institution:* Department of Mechanical Engineering, OAU, Ile-Ife, Nigeria  
+    Authors: Blessing Babatope, Gabriel Oke, Prof. B.O. Malomo  
+    Institution: Department of Mechanical Engineering, OAU, Ile-Ife, Nigeria  
     """)
 
 # ------------------------------------------------------------

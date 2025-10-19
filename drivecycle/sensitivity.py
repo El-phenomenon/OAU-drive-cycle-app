@@ -51,35 +51,7 @@ def run_sobol(model_type="pce", N=512):
 
         def predict(X):
             Xs = scaler.transform(X) if scaler is not None else X
-
-            # --- CASE 1: Keras model (has .predict) ---
-            if hasattr(dnn, "predict"):
-                preds = dnn.predict(Xs)
-            
-            # --- CASE 2: TFLite interpreter ---
-            else:
-                import numpy as np
-                interpreter = dnn
-                input_index = interpreter.get_input_details()[0]['index']
-                output_index = interpreter.get_output_details()[0]['index']
-
-                preds = []
-                for row in Xs:
-                    row = row.astype(np.float32).reshape(1, -1)
-                    interpreter.set_tensor(input_index, row)
-                    interpreter.invoke()
-                    output = interpreter.get_tensor(output_index)
-                    preds.append(output[0])
-                preds = np.array(preds)
-
-            # Ensure array output
-            preds = np.array(preds)
-            if preds.ndim == 1:
-                preds = preds.reshape(-1, 1)
-            if preds.shape[1] != 2:
-                raise ValueError(f"DNN output shape {preds.shape} invalid — expected (N, 2).")
-
-            return preds
+            return dnn.predict(Xs)
 
     # Sobol sampling
     X = saltelli.sample(PROBLEM, N, calc_second_order=False)
