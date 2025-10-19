@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # Local module imports
 from drivecycle.io import load_cycle
 from drivecycle.simulation import integrate_energy_for_cycle
-from drivecycle.models import predict_pce, predict_dnn
+from drivecycle.models import predict_pce, predict_dnn, _load_dnn
 from drivecycle.sensitivity import run_sobol, plot_sobol
 
 # ------------------------------------------------------------
@@ -194,14 +194,19 @@ with tabs[1]:
         "AUX_kW": aux, "BR_pct": br
     }])
 
+    dnn_available = _load_dnn() is not None
+
     if st.button("Run Surrogate Predictions"):
         with st.spinner("Running PCE and DNN predictions..."):
             pce_out = predict_pce(input_df)
-            dnn_out = predict_dnn(input_df)
+            dnn_out = predict_dnn(input_df) if dnn_available else None
 
         st.subheader("Predicted Outputs")
         st.write("PCE Output:", pce_out.to_dict(orient="records")[0])
-        st.write("DNN Output:", dnn_out.to_dict(orient="records")[0])
+        if dnn_available:
+            st.write("DNN Output:", dnn_out.to_dict(orient="records")[0])
+        else:
+            st.warning("⚠ DNN model unavailable on this environment. Showing only PCE results.")
 
 # ============================================================
 # TAB 3 — SENSITIVITY ANALYSIS
@@ -209,7 +214,9 @@ with tabs[1]:
 with tabs[2]:
     st.header("📊 Global Sensitivity Analysis")
 
-    model_choice = st.selectbox("Select Model", ["PCE", "DNN"])
+    dnn_available = _load_dnn() is not None
+    model_options = ["PCE"] + (["DNN"] if dnn_available else [])
+    model_choice = st.selectbox("Select Model", model_options)
     N = st.slider("Number of Sobol Samples (power of 2)", 128, 1024, 512, step=128)
 
     if st.button("Run Sensitivity Analysis"):

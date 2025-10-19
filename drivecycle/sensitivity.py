@@ -45,13 +45,30 @@ def run_sobol(model_type="pce", N=512):
             return model.predict(poly.transform(X))
     else:
         dnn = _load_dnn()
-        if dnn is None:
-            raise RuntimeError("DNN model not found.")
-        scaler = _load_scaler()
+    if dnn is None:
+        raise RuntimeError("DNN model not found.")
+    scaler = _load_scaler()
 
-        def predict(X):
-            Xs = scaler.transform(X) if scaler is not None else X
-            return dnn.predict(Xs)
+    def predict(X):
+        Xs = scaler.transform(X) if scaler is not None else X
+        Xs = np.asarray(Xs, dtype=np.float32)
+
+        # Prepare TFLite input/output
+        input_details = dnn.get_input_details()
+        output_details = dnn.get_output_details()
+
+        # Ensure correct shape for the interpreter
+        dnn.resize_tensor_input(input_details[0]['index'], Xs.shape)
+        dnn.allocate_tensors()
+
+        dnn.set_tensor(input_details[0]['index'], Xs)
+        dnn.invoke()
+        preds = dnn.get_tensor(output_details[0]['index'])
+
+        preds = np.asarray(preds)
+        if preds.ndim == 1:
+            preds = np.vstack([preds, np.zeros_like(preds)]).T
+        return preds
 
     # Sobol sampling
     X = saltelli.sample(PROBLEM, N, calc_second_order=False)
