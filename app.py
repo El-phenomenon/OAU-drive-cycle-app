@@ -209,14 +209,23 @@ with tabs[1]:
             st.warning("⚠ DNN model unavailable on this environment. Showing only PCE results.")
 
 # ============================================================
+# ============================================================
 # TAB 3 — SENSITIVITY ANALYSIS
 # ============================================================
 with tabs[2]:
     st.header("📊 Global Sensitivity Analysis")
 
+    from drivecycle.models import _load_dnn
+
+    # Try to load DNN model quietly
     dnn_available = _load_dnn() is not None
-    model_options = ["PCE"] + (["DNN"] if dnn_available else [])
-    model_choice = st.selectbox("Select Model", model_options)
+
+    if dnn_available:
+        model_choice = st.selectbox("Select Model", ["PCE", "DNN"])
+    else:
+        model_choice = st.selectbox("Select Model", ["PCE"])
+        st.info("ℹ DNN model not available. Only PCE sensitivity analysis can be run.")
+
     N = st.slider("Number of Sobol Samples (power of 2)", 128, 1024, 512, step=128)
 
     if st.button("Run Sensitivity Analysis"):
