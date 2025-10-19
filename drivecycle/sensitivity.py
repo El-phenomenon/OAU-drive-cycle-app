@@ -30,46 +30,45 @@ BOUNDS = [
 PROBLEM = {"num_vars": len(FACTOR_NAMES), "names": FACTOR_NAMES, "bounds": BOUNDS}
 
 
-def run_sobol(model_type="pce", N=512):
-    """
-    Run small Sobol analysis on PCE or DNN surrogate.
-    Returns two DataFrames: (energy_df, regen_df)
-    """
-    if model_type.lower() == "pce":
-        pce = _load_pce()
-        if pce is None:
+def run_sobol(model_choice: str, N: int = 512):
+    from .models import _load_pce, _load_dnn, _load_scaler, FEATURE_ORDER, predict_pce
+
+    scaler = _load_scaler()
+    dnn = None   # <---- ADD THIS LINE
+
+    if model_choice == "pce":
+        model = _load_pce()
+        if model is None:
             raise RuntimeError("PCE model not found.")
-        poly, model = pce
+        poly, pce_model = model
 
         def predict(X):
-            return model.predict(poly.transform(X))
-    else:
+            X_poly = poly.transform(X)
+            Y = pce_model.predict(X_poly)
+            return np.asarray(Y)
+
+    else:  # DNN
         dnn = _load_dnn()
-    if dnn is None:
-        raise RuntimeError("DNN model not found.")
-    scaler = _load_scaler()
+        if dnn is None:
+            raise RuntimeError("DNN model not found.")
 
-    def predict(X):
-        Xs = scaler.transform(X) if scaler is not None else X
-        Xs = np.asarray(Xs, dtype=np.float32)
+        def predict(X):
+            Xs = scaler.transform(X) if scaler is not None else X
+            Xs = np.asarray(Xs, dtype=np.float32)
 
-        # Prepare TFLite input/output
-        input_details = dnn.get_input_details()
-        output_details = dnn.get_output_details()
+            input_details = dnn.get_input_details()
+            output_details = dnn.get_output_details()
 
-        # Ensure correct shape for the interpreter
-        dnn.resize_tensor_input(input_details[0]['index'], Xs.shape)
-        dnn.allocate_tensors()
+            dnn.resize_tensor_input(input_details[0]['index'], Xs.shape)
+            dnn.allocate_tensors()
+            dnn.set_tensor(input_details[0]['index'], Xs)
+            dnn.invoke()
 
-        dnn.set_tensor(input_details[0]['index'], Xs)
-        dnn.invoke()
-        preds = dnn.get_tensor(output_details[0]['index'])
-
-        preds = np.asarray(preds)
-        if preds.ndim == 1:
-            preds = np.vstack([preds, np.zeros_like(preds)]).T
-        return preds
-
+            preds = dnn.get_tensor(output_details[0]['index'])
+            preds = np.asarray(preds)
+            if preds.ndim == 1:
+                preds = np.vstack([preds, np.zeros_like(preds)]).T
+            return preds
     # Sobol sampling
     X = saltelli.sample(PROBLEM, N, calc_second_order=False)
     Y = predict(X)
