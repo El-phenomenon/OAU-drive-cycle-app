@@ -12,8 +12,6 @@ from drivecycle.sensitivity import run_sobol, plot_sobol
 
 st.set_page_config(page_title="OAU Drive Cycle Energy Simulator", layout="wide")
 
-
-
 # -----------------------
 # Helper: session-state defaults
 # -----------------------
@@ -74,55 +72,6 @@ with col2:
 with col3:
     st.image("photos/Mech.png", width=70)
 st.markdown("---")
-
-# Sidebar branding (logos side-by-side)
-# ------------------------------------------------------------
-scol1, scol2 = st.sidebar.columns([1, 1])
-with scol1:
-    st.image("photos/OAU_logo.png", width=50)
-with scol2:
-    st.image("photos/Mech.png", width=50)
-
-st.sidebar.markdown(
-    """
-    <div style='text-align:center; font-size:13px; line-height:1.3; color:#004aad;'>
-    <b>Obafemi Awolowo University</b><br>
-    Department of Mechanical Engineering
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# ------------------------------------------------------------
-# About / Description
-# ------------------------------------------------------------
-with st.expander("ℹ About this App", expanded=False):
-    st.markdown("""
-    OAU Drive Cycle Energy Simulator
-
-    Developed from the research project “Evolution of a Novel Drive Cycle for Energy Prediction of EV Vehicles” at Obafemi Awolowo University (OAU), Ile-Ife, Nigeria.
-
-    ---
-    ### 🔍 What it does
-    - Physics-Based Model (ECB):  
-      Estimates energy consumption and regeneration from real drive cycles.
-    - Surrogate Models (Polynomial Chaos Expansion (PCE) & Deep Neural Network (DNN)):  
-      Provide rapid energy and regeneration predictions using 10 calibrated factors.
-    - Sensitivity Analysis:  
-      Identifies the most influential input factors using Sobol indices.
-
-    ---
-    ### 🧩 Key Features
-    - Upload custom drive cycles  
-    - Compare ECB, PCE, and DNN models  
-    - Visualize top 4 most influential factors  
-    - Designed for EV researchers, engineers, and students  
-
-    ---
-    Authors: Blessing Babatope, Gabriel Oke, Prof. B.O. Malomo  
-    Institution: Department of Mechanical Engineering, OAU, Ile-Ife, Nigeria  
-    """)
-
 
 # -----------------------
 # Left sidebar: vehicle type + quick controls
@@ -410,7 +359,5 @@ with tabs[3]:
 # -----------------------
 # Footer
 # -----------------------
-<div style='text-align:center; font-size: small; color: grey;'>
-Developed by Prof. B.O. Malomo, Blessing Babatope and Gabriel Oke | Department of Mechanical Engineering, OAU, Ile-Ife
-</div>
-""", unsafe_allow_html=True)
+st.markdown("---")
+st.markdown("<small>Developed by Ayomide B. — Dept. of Mechanical Engineering, OAU</small>", unsafe_allow_html=True)
