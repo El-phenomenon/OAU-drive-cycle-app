@@ -327,7 +327,6 @@ with tabs[1]:
                     "BR_pct": st.session_state["BR_pct"],
                 }
                 result = integrate_energy_for_cycle(cycle_df, params)
-                energy_kwh_per_km, regen_pct, distance_km = result
                 st.session_state["last_physics_result"] = result
                 st.success("EV physics simulation complete.")
                 st.metric("Energy (kWh/km)", f"{energy_kwh_per_km:.3f}")
