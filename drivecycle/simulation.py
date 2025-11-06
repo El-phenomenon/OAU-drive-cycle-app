@@ -90,7 +90,5 @@ def integrate_energy_for_cycle(df_cycle, params):
         "energy_kwh_per_km": energy_kwh_per_km,
         "regen_pct": regen_pct,
         "distance_km": distance_km,
-        "total_energy_Wh": energy_wh,
-        "regen_energy_Wh": regen_wh,
         "net_energy_Wh": net_wh
     }
