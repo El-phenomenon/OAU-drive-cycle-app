@@ -4,49 +4,40 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Local modules
 from drivecycle.io import load_cycle
 from drivecycle.simulation import integrate_energy_for_cycle
 from drivecycle.models import predict_pce, predict_dnn
 from drivecycle.sensitivity import run_sobol, plot_sobol
 
 # ------------------------------------------------------------
-# Page Config
+# PAGE CONFIG
 # ------------------------------------------------------------
 st.set_page_config(page_title="OAU Drive Cycle Energy Simulator", layout="wide")
 
 # ------------------------------------------------------------
-# Header
+# HEADER AND LOGOS
 # ------------------------------------------------------------
 col1, col2, col3 = st.columns([1, 4, 1])
 with col1:
-    try:
-        st.image("photos/OAU_logo.png", width=70)
-    except:
-        st.write("")
+    st.image("photos/OAU_logo.png", width=70)
 with col2:
     st.markdown("<h2 style='text-align:center; color:#004aad;'>OAU Drive Cycle Energy Simulator</h2>", unsafe_allow_html=True)
 with col3:
-    try:
-        st.image("photos/Mech.png", width=70)
-    except:
-        st.write("")
+    st.image("photos/Mech.png", width=70)
 st.markdown("---")
 
 # Sidebar logos
-scol1, scol2 = st.sidebar.columns([1, 1])
-with scol1:
-    st.image("photos/OAU_logo.png", width=50)
-with scol2:
-    st.image("photos/Mech.png", width=50)
-st.sidebar.markdown("""
-<div style='text-align:center; font-size:13px; color:#004aad;'>
-<b>Obafemi Awolowo University</b><br>Dept. of Mechanical Engineering
-</div>
-""", unsafe_allow_html=True)
+scol1, scol2 = st.sidebar.columns(2)
+scol1.image("photos/OAU_logo.png", width=45)
+scol2.image("photos/Mech.png", width=45)
+st.sidebar.markdown(
+    "<div style='text-align:center; font-size:13px; color:#004aad;'>"
+    "<b>Obafemi Awolowo University</b><br>Dept. of Mechanical Engineering</div>",
+    unsafe_allow_html=True,
+)
 
 # ------------------------------------------------------------
-# Load reference drive cycle
+# LOAD REFERENCE DRIVE CYCLE
 # ------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DRIVE_CYCLE_PATH = os.path.join(BASE_DIR, "data", "final_drive_cycle.csv")
@@ -55,177 +46,175 @@ try:
     cycle_df = load_cycle(DRIVE_CYCLE_PATH)
     st.session_state["reference_cycle_loaded"] = True
 except Exception as e:
-    cycle_df = None
-    st.session_state["reference_cycle_loaded"] = False
     st.error(f"Could not load drive cycle: {e}")
+    cycle_df = None
 
 # ------------------------------------------------------------
-# Sidebar: Select fuel type
-# ------------------------------------------------------------
-st.sidebar.header("Simulation Setup")
-fuel_type = st.sidebar.selectbox("Select Fuel Type", ["Select...", "Electric Vehicle (EV)", "Internal Combustion Engine (ICE)"])
-st.session_state["fuel_type"] = fuel_type
-
-# ------------------------------------------------------------
-# Helper: ICE Physics Model
+# ICE MODEL HELPER
 # ------------------------------------------------------------
 def integrate_fuel_for_cycle(cycle_df, params):
     rho_air = 1.225
     g = 9.81
     LHV_J_per_L = 34.2e6
     CO2_g_per_L = 2392.0
+
     t = cycle_df["time_s"].values
     v = cycle_df["speed_m_s"].values
-    dt = np.diff(t, append=t[-1] + (t[-1]-t[-2] if len(t)>1 else 1.0))
+    dt = np.diff(t, append=t[-1] + (t[-1]-t[-2] if len(t)>1 else 1))
+    mass = params["MASS"]; RRC = params["RRC"]; Cd = params["Cd"]; A = 2.2
+    hw = params["HW"]; aux_w = params["AUX_kW"]*1000
+    eff = max(0.01, params["Engine_Eff"]/100); idle_lph = params["Idle_Fuel_Lph"]
 
-    mass = params["MASS"]; RRC = params["RRC"]; Cd = params["Cd"]
-    hw = params["HW"]; aux_w = params["AUX_kW"] * 1000
-    eff = max(0.01, params["Engine_Eff"]/100); idle = params["Idle_Fuel_Lph"]
-
-    total_l, dist_m = 0, 0
+    total_fuel_l, dist_m = 0, 0
     for i in range(len(v)):
         vi = v[i]; ai = 0 if i==0 else (v[i]-v[i-1])/(dt[i] if dt[i]>0 else 1)
-        F = mass*ai + mass*g*RRC + 0.5*rho_air*Cd*2.2*(vi+hw)**2
-        Pw = F*vi
-        if Pw >= 0:
-            total_l += (Pw/eff/LHV_J_per_L)*dt[i]
+        v_air = vi + hw
+        F_inertia = mass*ai; F_roll = mass*g*RRC
+        F_aero = 0.5*rho_air*Cd*A*(v_air**2)
+        F_trac = F_inertia + F_roll + F_aero
+        P_wheel = F_trac*vi
+        if P_wheel >= 0:
+            P_engine = (P_wheel/0.9)+aux_w
+            fuel_l = (P_engine/eff/LHV_J_per_L)*dt[i]
         else:
-            total_l += (idle/3600)*dt[i]
+            fuel_l = (idle_lph/3600)*dt[i]
+        total_fuel_l += fuel_l
         dist_m += vi*dt[i]
     dist_km = dist_m/1000
-    l_per_100 = (total_l/dist_km*100) if dist_km>0 else np.nan
-    co2 = (total_l*CO2_g_per_L/dist_km) if dist_km>0 else np.nan
-    return total_l, l_per_100, co2, dist_km
+    fuel_100 = (total_fuel_l/dist_km*100) if dist_km>0 else np.nan
+    co2_km = (total_fuel_l*CO2_g_per_L/dist_km) if dist_km>0 else np.nan
+    return total_fuel_l, fuel_100, co2_km, dist_km
 
 # ------------------------------------------------------------
-# Tabs
+# TABS
 # ------------------------------------------------------------
-tabs = st.tabs(["🧮 Physics Model", "🤖 Surrogate Models", "📊 Sensitivity Analysis"])
+tabs = st.tabs(["🚗 Vehicle Setup", "🧮 Physics Model", "🤖 Surrogate Models", "📊 Sensitivity Analysis"])
 
 # ------------------------------------------------------------
-# TAB 1 - Physics Model
+# TAB 1 - Vehicle Setup
 # ------------------------------------------------------------
 with tabs[0]:
-    st.header("🧮 Physics Model (OAU Reference Drive Cycle)")
+    st.header("🚗 Vehicle Setup & Parameter Estimation")
+    fuel_type = st.selectbox("Select Fuel Type", ["Electric Vehicle (EV)", "Internal Combustion Engine (ICE)"])
+    mass = st.number_input("Vehicle Mass (kg)", 500, 8000, 2000, step=50)
+    passengers = st.number_input("Passengers", 0, 100, 2)
+    terrain = st.selectbox("Road Type", ["City", "Urban Arterial", "Highway", "Rough"])
+    ac_on = st.checkbox("Air conditioner/heavy auxiliary load", value=False)
+    tyre_type = st.selectbox("Tyre Condition", ["Standard", "Low Rolling Resistance", "Worn"])
+    engine_size = st.selectbox("Engine/Motor Size", ["Small", "Standard", "Large"])
 
-    if fuel_type == "Select...":
-        st.info("Please select your fuel type from the sidebar to continue.")
+    if st.button("Estimate Technical Parameters"):
+        total_mass = mass + passengers*70
+        hw = {"City":0.0, "Urban Arterial":1.0, "Highway":2.5, "Rough":-1.0}[terrain]
+        rrc = {"Standard":0.010, "Low Rolling Resistance":0.007, "Worn":0.012}[tyre_type]
+        aux = 2.0 if ac_on else 0.8
+
+        if fuel_type == "Electric Vehicle (EV)":
+            params = {
+                "MASS": total_mass, "RRC": rrc, "HW": hw, "AUX_kW": aux,
+                "Tb": 25.0, "SoC_pct": 80.0, "BAge_pct": 10.0,
+                "MR_mOhm": 55.0 if engine_size!="Small" else 50.0,
+                "BR_pct": 100.0 + 5.0, "Type": "EV"
+            }
+        else:
+            eff = 30.0 if engine_size=="Standard" else (25.0 if engine_size=="Large" else 35.0)
+            idle = 0.8 if engine_size=="Standard" else (1.0 if engine_size=="Large" else 0.6)
+            Cd = 0.32 if engine_size=="Small" else (0.36 if engine_size=="Standard" else 0.40)
+            params = {
+                "MASS": total_mass, "RRC": rrc, "HW": hw, "AUX_kW": aux,
+                "Cd": Cd, "Engine_Eff": eff, "Idle_Fuel_Lph": idle, "Type": "ICE"
+            }
+
+        st.session_state["vehicle_params"] = params
+        st.success("✅ Parameters estimated successfully!")
+        st.write(pd.DataFrame(params.items(), columns=["Factor", "Value"]))
+
+# ------------------------------------------------------------
+# TAB 2 - Physics Model
+# ------------------------------------------------------------
+with tabs[1]:
+    st.header("🧮 Physics-Based Simulation")
+    if "vehicle_params" not in st.session_state:
+        st.warning("Please configure your vehicle in the *Vehicle Setup* tab first.")
     elif not st.session_state["reference_cycle_loaded"]:
         st.error("Reference drive cycle not loaded.")
     else:
-        st.markdown("Using the fixed OAU reference drive cycle for all calculations.")
+        params = st.session_state["vehicle_params"]
+        st.write("*Using parameters:*")
+        st.write(pd.DataFrame(params.items(), columns=["Factor", "Value"]))
 
-        # Dynamic form for input fields
-        with st.form("physics_inputs"):
-            st.subheader(f"{fuel_type} Parameters")
-            cols = st.columns(2)
-            with cols[0]:
-                MASS = st.number_input("Vehicle Mass (kg)", min_value=500.0, max_value=8000.0, value=None, step=10.0)
-                RRC = st.number_input("Rolling Resistance (RRC)", min_value=0.005, max_value=0.020, value=None, step=0.001)
-                HW = st.number_input("Headwind (m/s)", min_value=-5.0, max_value=5.0, value=None, step=0.1)
-                AUX_kW = st.number_input("Auxiliary Load (kW)", min_value=0.0, max_value=10.0, value=None, step=0.1)
-            with cols[1]:
-                if fuel_type == "Electric Vehicle (EV)":
-                    Tb = st.number_input("Battery Temperature (°C)", 0.0, 60.0, value=None)
-                    SoC_pct = st.number_input("State of Charge (%)", 0.0, 100.0, value=None)
-                    BAge_pct = st.number_input("Battery Age (%)", 0.0, 50.0, value=None)
-                    MR_mOhm = st.number_input("Motor Resistance (mΩ)", 10.0, 200.0, value=None)
-                    BR_pct = st.number_input("Battery Resistance Growth (%)", 50.0, 200.0, value=None)
-                else:
-                    Cd = st.number_input("Drag Coefficient (Cd)", 0.2, 0.6, value=None)
-                    Engine_Eff = st.number_input("Engine Efficiency (%)", 5.0, 60.0, value=None)
-                    Idle_Fuel_Lph = st.number_input("Idle Fuel (L/h)", 0.0, 5.0, value=None)
-            submitted = st.form_submit_button("Run Physics Simulation")
+        if st.button("Run Physics Simulation"):
+            if params["Type"] == "EV":
+                result = integrate_energy_for_cycle(cycle_df, params)
+                st.success("EV simulation complete.")
+                st.metric("Energy (kWh/km)", f"{result['energy_kwh_per_km']:.3f}")
+                st.metric("Regeneration (%)", f"{result['regen_pct']:.2f}")
+                st.metric("Distance (km)", f"{result['distance_km']:.2f}")
+            else:
+                total_fuel_l, fuel_100, co2_km, dist_km = integrate_fuel_for_cycle(cycle_df, params)
+                st.success("ICE simulation complete.")
+                st.metric("Fuel (L/100 km)", f"{fuel_100:.3f}")
+                st.metric("CO₂ (g/km)", f"{co2_km:.1f}")
+                st.metric("Distance (km)", f"{dist_km:.2f}")
 
-        if submitted:
-            if fuel_type == "Electric Vehicle (EV)":
-                if None in [MASS, RRC, HW, AUX_kW, Tb, SoC_pct, BAge_pct, MR_mOhm, BR_pct]:
-                    st.warning("Please fill in all EV parameters before running the simulation.")
-                else:
-                    params = {
-                        "MASS": MASS, "RRC": RRC, "HW": HW, "AUX_kW": AUX_kW,
-                        "Tb": Tb, "SoC_pct": SoC_pct, "BAge_pct": BAge_pct,
-                        "MR_mOhm": MR_mOhm, "BR_pct": BR_pct
-                    }
-                    result = integrate_energy_for_cycle(cycle_df, params)
-                    st.success("EV Physics Simulation Complete.")
-                    st.metric("Energy (kWh/km)", f"{result['energy_kwh_per_km']:.3f}")
-                    st.metric("Regen (%)", f"{result['regen_pct']:.2f}")
-                    st.metric("Distance (km)", f"{result['distance_km']:.2f}")
-
-            elif fuel_type == "Internal Combustion Engine (ICE)":
-                if None in [MASS, RRC, HW, AUX_kW, Cd, Engine_Eff, Idle_Fuel_Lph]:
-                    st.warning("Please fill in all ICE parameters before running the simulation.")
-                else:
-                    params = {
-                        "MASS": MASS, "RRC": RRC, "HW": HW, "AUX_kW": AUX_kW,
-                        "Cd": Cd, "Engine_Eff": Engine_Eff, "Idle_Fuel_Lph": Idle_Fuel_Lph
-                    }
-                    total_fuel_l, fuel_l_per_100km, co2_g_per_km, distance_km = integrate_fuel_for_cycle(cycle_df, params)
-                    st.success("ICE Physics Simulation Complete.")
-                    st.metric("Fuel (L/100 km)", f"{fuel_l_per_100km:.3f}")
-                    st.metric("CO₂ (g/km)", f"{co2_g_per_km:.1f}")
-                    st.metric("Distance (km)", f"{distance_km:.2f}")
-
-        # Always show the reference cycle
-        st.subheader("Reference Drive Cycle")
+        st.subheader("Reference Drive Cycle (Speed vs Time)")
         fig, ax = plt.subplots(figsize=(8, 3))
         ax.plot(cycle_df["time_s"], cycle_df["speed_m_s"], color="blue")
-        ax.set_xlabel("Time (s)")
-        ax.set_ylabel("Speed (m/s)")
-        ax.grid(True)
+        ax.set_xlabel("Time (s)"); ax.set_ylabel("Speed (m/s)"); ax.grid(True)
         st.pyplot(fig)
 
 # ------------------------------------------------------------
-# TAB 2 - Surrogates
+# TAB 3 - Surrogates
 # ------------------------------------------------------------
-with tabs[1]:
+with tabs[2]:
     st.header("🤖 Surrogate Models (EV only)")
-    if fuel_type != "Electric Vehicle (EV)":
-        st.info("Surrogate models are available only for EV.")
+    if "vehicle_params" not in st.session_state:
+        st.warning("Configure your EV first in the Vehicle Setup tab.")
+    elif st.session_state["vehicle_params"]["Type"] != "EV":
+        st.info("Surrogate models available for EVs only.")
     else:
-        st.write("Run trained PCE or DNN surrogate models for EV predictions.")
-        if st.button("Run EV Surrogates"):
+        p = st.session_state["vehicle_params"]
+        input_df = pd.DataFrame([{
+            "MASS": p["MASS"], "HW": p["HW"], "RRC": p["RRC"],
+            "Ta": 25.0, "Tb": p["Tb"], "SoC_pct": p["SoC_pct"],
+            "BAge_pct": p["BAge_pct"], "MR_mOhm": p["MR_mOhm"],
+            "AUX_kW": p["AUX_kW"], "BR_pct": p["BR_pct"]
+        }])
+        if st.button("Run Surrogate Predictions"):
             try:
-                st.spinner("Predicting...")
-                dummy_input = pd.DataFrame([{"MASS": MASS, "HW": HW, "RRC": RRC, "AUX_kW": AUX_kW,
-                                             "Tb": Tb, "SoC_pct": SoC_pct, "BAge_pct": BAge_pct,
-                                             "MR_mOhm": MR_mOhm, "BR_pct": BR_pct}])
-                pce_out = predict_pce(dummy_input)
-                dnn_out = predict_dnn(dummy_input)
-                st.write("*PCE Prediction:*", pce_out.to_dict(orient="records")[0])
-                st.write("*DNN Prediction:*", dnn_out.to_dict(orient="records")[0])
+                pce_out = predict_pce(input_df)
+                dnn_out = predict_dnn(input_df)
+                st.write("*PCE Output:*", pce_out.to_dict(orient="records")[0])
+                st.write("*DNN Output:*", dnn_out.to_dict(orient="records")[0])
             except Exception as e:
                 st.error(f"Prediction failed: {e}")
 
 # ------------------------------------------------------------
-# TAB 3 - Sensitivity
+# TAB 4 - Sensitivity
 # ------------------------------------------------------------
-with tabs[2]:
+with tabs[3]:
     st.header("📊 Sensitivity Analysis (EV only)")
-    if fuel_type != "Electric Vehicle (EV)":
-        st.info("Sensitivity analysis is available only for EV models.")
+    if "vehicle_params" not in st.session_state or st.session_state["vehicle_params"]["Type"] != "EV":
+        st.info("Available for EV models only.")
     else:
-        model_choice = st.selectbox("Select Model Type", ["PCE", "DNN"])
-        N = st.slider("Sobol Sample Size", 128, 2048, 512, step=128)
+        model_choice = st.selectbox("Select model", ["PCE", "DNN"])
+        N = st.slider("Number of Sobol Samples", 128, 1024, 512, step=128)
         if st.button("Run Sensitivity Analysis"):
             try:
                 energy_df, regen_df = run_sobol(model_choice.lower(), N)
-                st.subheader("Energy Sensitivity (Top 4)")
-                fig1 = plot_sobol(energy_df, "Energy Consumption")
-                st.pyplot(fig1)
-                st.subheader("Regeneration Sensitivity (Top 4)")
-                fig2 = plot_sobol(regen_df, "Regeneration Efficiency")
-                st.pyplot(fig2)
+                st.subheader("Energy Consumption (Top 4)")
+                st.pyplot(plot_sobol(energy_df, f"{model_choice} - Energy", top_n=4))
+                st.subheader("Regeneration Efficiency (Top 4)")
+                st.pyplot(plot_sobol(regen_df, f"{model_choice} - Regen", top_n=4))
             except Exception as e:
                 st.error(f"Sensitivity failed: {e}")
 
 # ------------------------------------------------------------
-# Footer
+# FOOTER
 # ------------------------------------------------------------
 st.markdown("""
 ---
 <div style='text-align:center; font-size: small; color: grey;'>
-Developed by Prof. B.O. Malomo, Blessing Babatope, and Gabriel Oke | Dept. of Mechanical Engineering, OAU, Ile-Ife
+Developed by Prof. B.O. Malomo, Blessing Babatope & Gabriel Oke | Dept. of Mechanical Engineering, OAU Ile-Ife
 </div>
 """, unsafe_allow_html=True)
