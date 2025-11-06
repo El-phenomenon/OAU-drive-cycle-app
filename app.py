@@ -324,15 +324,7 @@ with tabs[1]:
                 st.success("EV Physics simulation complete.")
                 st.metric("Energy (kWh/km)", f"{energy_kwh_per_km:.3f}")
                 st.metric("Regeneration (%)", f"{regen_pct:.2f}")
-                st.metric("Distance (km)", f"{distance_km:.2f}")
-            elif:
-                params = {"MASS": MASS, "RRC": RRC, "HW": HW, "AUX_kW": AUX_kW,
-                          "Cd": Cd, "Engine_Eff": Engine_Eff, "Idle_Fuel_Lph": Idle_Fuel_Lph}
-                total_fuel_l, fuel_l_per_100km, co2_g_per_km, distance_km = integrate_fuel_for_cycle(cycle_df, params)
-                st.success("ICE Physics simulation complete.")
-                st.metric("Fuel (L/100 km)", f"{fuel_l_per_100km:.3f}")
-                st.metric("CO₂ (g/km)", f"{co2_g_per_km:.1f}")
-                st.metric("Distance (km)", f"{distance_km:.2f}")
+                st.metric("Distance (km)", f"{distance_km:.2f}")  
             else:
                 params = {
                     "MASS": st.session_state["MASS"],
