@@ -326,18 +326,22 @@ with tabs[1]:
                     "AUX_kW": st.session_state["AUX_kW"],
                     "BR_pct": st.session_state["BR_pct"],
                 }
-                net_wh, energy_kwh_per_km, regen_pct, distance_km = integrate_energy_for_cycle(cycle_df, params)
-                st.session_state["last_physics_result"] = {
-                    "energy_kwh": net_wh,
-                    "energy_kwh_per_km": energy_kwh_per_km,
-                    "regen_pct": regen_pct,
-                    "distance_km": distance_km
-                }
-                result = integrate_energy_for_cycle(...)
-                st.success("EV physics simulation complete.")
-                st.metric("Energy (kWh/km)", f"{result['energy_kwh_per_km']:.3f}")
-                st.metric("Regen (%)", f"{result['regen_pct']:.2f}")
-                st.metric("Distance (km)", f"{result['distance_km']:.2f}")
+               result = integrate_energy_for_cycle(cycle_df, params)
+
+# if it’s a tuple, unpack; if it’s a dict, extract keys
+if isinstance(result, dict):
+    energy_kwh_per_km = float(result.get("energy_kwh_per_km", 0))
+    regen_pct = float(result.get("regen_pct", 0))
+    distance_km = float(result.get("distance_km", 0))
+else:
+    # assume the legacy tuple form (net_wh, energy_kwh_per_km, regen_pct, distance_km)
+    _, energy_kwh_per_km, regen_pct, distance_km = result
+
+st.session_state["last_physics_result"] = result
+st.success("EV physics simulation complete.")
+st.metric("Energy (kWh/km)", f"{energy_kwh_per_km:.3f}")
+st.metric("Regen (%)", f"{regen_pct:.2f}")
+st.metric("Distance (km)", f"{distance_km:.2f}")
             else:
                 params = {
                     "MASS": st.session_state["MASS"],
