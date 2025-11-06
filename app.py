@@ -333,10 +333,11 @@ with tabs[1]:
                     "regen_pct": regen_pct,
                     "distance_km": distance_km
                 }
+                result = integrate_energy_for_cycle(...)
                 st.success("EV physics simulation complete.")
-                st.metric("Energy (kWh/km)", f"{energy_kwh_per_km:.3f}")
-                st.metric("Regen (%)", f"{regen_pct:.2f}")
-                st.metric("Distance (km)", f"{distance_km:.2f}")
+                st.metric("Energy (kWh/km)", f"{result['energy_kwh_per_km']:.3f}")
+                st.metric("Regen (%)", f"{result['regen_pct']:.2f}")
+                st.metric("Distance (km)", f"{result['distance_km']:.2f}")
             else:
                 params = {
                     "MASS": st.session_state["MASS"],
