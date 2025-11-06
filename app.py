@@ -327,11 +327,6 @@ with tabs[1]:
                     "BR_pct": st.session_state["BR_pct"],
                 }
                 result = integrate_energy_for_cycle(cycle_df, params)
-            if isinstance(result, dict):
-                energy_kwh_per_km = float(result.get("energy_kwh_per_km", 0))
-                regen_pct = float(result.get("regen_pct", 0))
-                distance_km = float(result.get("distance_km", 0))
-            else:
                 energy_kwh_per_km, regen_pct, distance_km = result
                 st.session_state["last_physics_result"] = result
                 st.success("EV physics simulation complete.")
