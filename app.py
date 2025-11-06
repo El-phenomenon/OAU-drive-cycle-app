@@ -72,8 +72,8 @@ st.info("⚠ All surrogate predictions and sensitivity analysis are trained/defi
 # Constants & internal paths
 # ------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DRIVE_CYCLE_PATH = os.path.join(BASE_DIR, "data", "final_drive_cycle.csv")
-RESULTS_DIR = os.path.join(BASE_DIR, "results")
+DRIVE_CYCLE_PATH = "C:\Babs\Part 5\505 Project\EV Project\OAU Drive cycle app\OAU-drive-cycle-app\data\final_drive_cycle.csv"
+RESULTS_DIR = "C:\Babs\Part 5\505 Project\EV Project\OAU Drive cycle app\OAU-drive-cycle-app\results"
 
 # ------------------------------------------------------------
 # Helper: load the fixed drive cycle
