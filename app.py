@@ -72,7 +72,7 @@ st.info("⚠ All surrogate predictions and sensitivity analysis are trained/defi
 # Constants & internal paths
 # ------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DRIVE_CYCLE_PATH = os.path.join(BASE_DIR, "drivecycle", "data", "final_drive_cycle.csv")
+DRIVE_CYCLE_PATH = os.path.join(BASE_DIR, "data", "final_drive_cycle.csv")
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
 # ------------------------------------------------------------
