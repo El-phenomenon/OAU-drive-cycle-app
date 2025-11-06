@@ -87,8 +87,8 @@ def integrate_energy_for_cycle(df_cycle, params):
     regen_pct = 100 * regen_wh / (energy_wh + 1e-9)
 
     return {
-        "energy_kwh_per_km": energy_kwh_per_km,
-        "regen_pct": regen_pct,
-        "distance_km": distance_km,
-        "net_energy_Wh": net_wh
+        "energy_kwh_per_km": float(energy_kwh_per_km),
+        "regen_pct": float(regen_pct),
+        "distance_km": float(distance_km),
+        "net_energy_Wh": float(net_wh)
     }
