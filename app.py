@@ -197,7 +197,7 @@ with tabs[1]:
 # TAB 3 - Surrogates
 # ------------------------------------------------------------
 with tabs[2]:
-    st.header("🤖 Surrogate Models (EV + ICE)")
+    st.header("🤖 Surrogate Model (PCE)")
     if "vehicle_params" not in st.session_state:
         st.warning("Configure your vehicle first in the Vehicle Setup tab.")
     else:
@@ -246,7 +246,7 @@ with tabs[2]:
 # TAB 4 - Sensitivity
 # ------------------------------------------------------------
 with tabs[3]:
-    st.header("📊 Sensitivity Analysis (EV + ICE)")
+    st.header("📊 Sensitivity Analysis")
     if "vehicle_params" not in st.session_state:
         st.warning("Configure your vehicle first in Vehicle Setup.")
     else:
