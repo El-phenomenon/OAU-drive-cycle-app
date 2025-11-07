@@ -180,13 +180,11 @@ with tabs[1]:
                 st.success("EV simulation complete.")
                 st.metric("Energy (kWh/km)", f"{result['energy_kwh_per_km']:.3f}")
                 st.metric("Regeneration (%)", f"{result['regen_pct']:.2f}")
-                st.metric("Distance (km)", f"{result['distance_km']:.2f}")
             else:
                 total_fuel_l, fuel_100, co2_km, dist_km = integrate_fuel_for_cycle(cycle_df, params)
                 st.success("ICE simulation complete.")
                 st.metric("Fuel (L/100 km)", f"{fuel_100:.3f}")
-                st.metric("CO₂ (g/km)", f"{co2_km:.1f}")
-                st.metric("Distance (km)", f"{dist_km:.2f}")
+                st.metric("CO₂ emission (g/km)", f"{co2_km:.1f}")
 
         st.subheader("Reference Drive Cycle (Speed vs Time)")
         fig, ax = plt.subplots(figsize=(8, 3))
@@ -194,6 +192,7 @@ with tabs[1]:
         ax.set_xlabel("Time (s)"); ax.set_ylabel("Speed (m/s)"); ax.grid(True)
         st.pyplot(fig)
 
+# ------------------------------------------------------------
 # ------------------------------------------------------------
 # TAB 3 - Surrogates
 # ------------------------------------------------------------
@@ -204,11 +203,18 @@ with tabs[2]:
     else:
         p = st.session_state["vehicle_params"]
         if p["Type"] == "EV":
+            # map full names to abbreviations for EV
             input_df = pd.DataFrame([{
-                "MASS": p["MASS"], "HW": p["HW"], "RRC": p["RRC"],
-                "Ta": 25.0, "Tb": p["Tb"], "SoC_pct": p["SoC_pct"],
-                "BAge_pct": p["BAge_pct"], "MR_mOhm": p["MR_mOhm"],
-                "AUX_kW": p["AUX_kW"], "BR_pct": p["BR_pct"]
+                "MASS": p["Total mass of the vehicle (kg)"],
+                "HW": p["Headwind, HW"],
+                "RRC": p["Rolling resistance coefficient, RRC"],
+                "Ta": 25.0,
+                "Tb": p["Temperature of Battery Pack, Tb (celsius)"],
+                "SoC_pct": p["State of charge of battery, SoC_pct"],
+                "BAge_pct": p["Battery capacity fade due to aging, BAge_pct"],
+                "MR_mOhm": p["Internal resistance of the motor, MR_mOhm"],
+                "AUX_kW": p["Auxiliary Power, AUX_kW"],
+                "BR_pct": p["Internal resistance growth of the battery, BR_pct"]
             }])
             if st.button("Run EV Surrogate Prediction (PCE)"):
                 try:
@@ -218,9 +224,14 @@ with tabs[2]:
                 except Exception as e:
                     st.error(f"Prediction failed: {e}")
         else:
+            # map full names to abbreviations for ICE
             input_df = pd.DataFrame([{
-                "MASS": p["MASS"], "HW": p["HW"], "RRC": p["RRC"], "Cd": p["Cd"],
-                "AUX_kW": p["AUX_kW"], "Engine_Eff": p["Engine_Eff"],
+                "MASS": p["Total mass of the vehicle"],
+                "HW": p["Headwind, HW"],
+                "RRC": p["Rolling Resistance coefficient, RRC"],
+                "Cd": p["Drag Coefficient, Cd"],
+                "AUX_kW": p["Auxiliary Power, AUX_kW"],
+                "Engine_Eff": p["Engine_Eff"],
                 "Idle_Fuel_Lph": p["Idle_Fuel_Lph"]
             }])
             if st.button("Run ICE Surrogate Prediction (PCE)"):
@@ -242,9 +253,35 @@ with tabs[3]:
         params = st.session_state["vehicle_params"]
         model_type = params["Type"]
         N = st.slider("Number of Sobol Samples", 128, 1024, 512, step=128)
+
+        # Map full names to abbreviated keys for analysis
+        if model_type == "EV":
+            base_params = {
+                "MASS": params["Total mass of the vehicle (kg)"],
+                "RRC": params["Rolling resistance coefficient, RRC"],
+                "HW": params["Headwind, HW"],
+                "AUX_kW": params["Auxiliary Power, AUX_kW"],
+                "Tb": params["Temperature of Battery Pack, Tb (celsius)"],
+                "SoC_pct": params["State of charge of battery, SoC_pct"],
+                "BAge_pct": params["Battery capacity fade due to aging, BAge_pct"],
+                "MR_mOhm": params["Internal resistance of the motor, MR_mOhm"],
+                "BR_pct": params["Internal resistance growth of the battery, BR_pct"],
+                "Ta": 25.0
+            }
+        else:
+            base_params = {
+                "MASS": params["Total mass of the vehicle"],
+                "HW": params["Headwind, HW"],
+                "RRC": params["Rolling Resistance coefficient, RRC"],
+                "Cd": params["Drag Coefficient, Cd"],
+                "AUX_kW": params["Auxiliary Power, AUX_kW"],
+                "Engine_Eff": params["Engine_Eff"],
+                "Idle_Fuel_Lph": params["Idle_Fuel_Lph"]
+            }
+
         if st.button("Run Sensitivity Analysis"):
             try:
-                main_df, aux_df = run_sobol(model_type, N, params)
+                main_df, aux_df = run_sobol(model_type, N, base_params)
                 if model_type == "EV":
                     st.subheader("Energy Consumption (Top 4)")
                     st.pyplot(plot_sobol(main_df, "EV - Energy", top_n=4))
@@ -254,7 +291,7 @@ with tabs[3]:
                     st.subheader("Fuel Consumption (Top 4)")
                     st.pyplot(plot_sobol(main_df, "ICE - Fuel", top_n=4))
                     st.subheader("CO₂ Emission (Top 4)")
-                    st.pyplot(plot_sobol(aux_df, "ICE - CO2", top_n=4))
+                    st.pyplot(plot_sobol(aux_df, "ICE - CO₂", top_n=4))
             except Exception as e:
                 st.error(f"Sensitivity failed: {e}")
 
