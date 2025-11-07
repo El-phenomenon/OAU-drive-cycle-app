@@ -32,19 +32,18 @@ st.markdown("---")
 # ------------------------------------------------------------
 with st.expander("📘 About This App", expanded=True):
     st.markdown("""
-    ### 🎯 *Purpose of the Application*
+    ###  *Purpose of the Application*
     This application simulates and analyzes the *energy or fuel consumption* of vehicles 
-    using a *representative drive cycle* collected within the Obafemi Awolowo University (OAU) campus — 
-    which reflects typical Nigerian driving patterns.
+    using a *representative drive cycle* collected within the Obafemi Awolowo University (OAU) campus which reflects typical Nigerian driving patterns.
 
-    ### ⚙ *What the App Does*
+    ### *What the App Does*
     - Predicts *energy use* and *regeneration efficiency* for *Electric Vehicles (EVs)*.
     - Estimates *fuel consumption* and *CO₂ emissions* for *Internal Combustion Engine (ICE)* vehicles.
     - Uses both *physics-based models* and *Polynomial Chaos Expansion (PCE)* surrogate models.
     - Performs *global sensitivity analysis* (Sobol method) to identify the top factors 
       affecting energy or fuel performance.
 
-    ### 🚀 *How It Works*
+    ### *How It Works*
     1. In the *Vehicle Setup* tab, specify your fuel type, vehicle details, and driving conditions.  
        The app automatically estimates technical parameters like rolling resistance, headwind, and efficiency.  
     2. Run the *Physics Model* to compute actual energy or fuel use based on the OAU drive cycle.  
