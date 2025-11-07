@@ -5,99 +5,87 @@ import numpy as np
 from SALib.sample import saltelli
 from SALib.analyze import sobol
 import matplotlib.pyplot as plt
-
-from .models import _load_pce, _load_dnn, _load_scaler
+from .models import predict_pce, predict_pce_ice, FEATURE_ORDER, FEATURE_ORDER_ICE
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
-FACTOR_NAMES = [
-    "MASS", "HW", "RRC", "Ta", "Tb",
-    "SoC_pct", "BAge_pct", "MR_mOhm", "AUX_kW", "BR_pct"
-]
-BOUNDS = [
-    [2500.0, 6000.0],
-    [-5.0, 5.0],
-    [0.006, 0.012],
-    [10.0, 35.0],
-    [18.0, 35.0],
-    [50.0, 100.0],
-    [0.0, 20.0],
-    [50.0, 58.0],
-    [1.0, 5.0],
-    [100.0, 150.0],
-]
-PROBLEM = {"num_vars": len(FACTOR_NAMES), "names": FACTOR_NAMES, "bounds": BOUNDS}
 
+# ============================================================
+# Generic Sobol runner that works for both EV and ICE
+# ============================================================
+def run_sobol(model_type: str, N: int = 512, base_params: dict = None):
+    """
+    Run Sobol sensitivity analysis based on user's input parameters.
+    Args:
+        model_type (str): "EV" or "ICE"
+        N (int): number of Sobol samples
+        base_params (dict): user's factor values from app input
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame]
+        -> (Energy or Fuel factors, Regen or CO2 factors)
+    """
 
-def run_sobol(model_choice: str, N: int = 512):
-    from .models import _load_pce, _load_dnn, _load_scaler, FEATURE_ORDER, predict_pce
+    if model_type.upper() == "EV":
+        factors = FEATURE_ORDER
+        model_fn = predict_pce
+    else:
+        factors = FEATURE_ORDER_ICE
+        model_fn = predict_pce_ice
 
-    scaler = _load_scaler()
-    dnn = None   # <---- ADD THIS LINE
+    # Define problem
+    names = factors
+    bounds = []
+    for f in names:
+        val = float(base_params.get(f, 1.0))
+        # ±20% variation around user input (reasonable neighborhood)
+        delta = abs(val * 0.2) if val != 0 else 0.1
+        bounds.append([val - delta, val + delta])
 
-    if model_choice == "pce":
-        model = _load_pce()
-        if model is None:
-            raise RuntimeError("PCE model not found.")
-        poly, pce_model = model
+    problem = {"num_vars": len(names), "names": names, "bounds": bounds}
 
-        def predict(X):
-            X_poly = poly.transform(X)
-            Y = pce_model.predict(X_poly)
-            return np.asarray(Y)
+    # Generate Sobol samples
+    X = saltelli.sample(problem, N, calc_second_order=False)
+    X_df = pd.DataFrame(X, columns=names)
 
-    else:  # DNN
-        dnn = _load_dnn()
-        if dnn is None:
-            raise RuntimeError("DNN model not found.")
+    # Predict outputs
+    preds = model_fn(X_df).to_numpy()
 
-        def predict(X):
-            Xs = scaler.transform(X) if scaler is not None else X
-            Xs = np.asarray(Xs, dtype=np.float32)
+    # Separate outputs based on model type
+    if model_type.upper() == "EV":
+        y_main = preds[:, 0]  # energy (kWh/km)
+        y_aux = preds[:, 1]   # regen (%)
+    else:
+        y_main = preds[:, 0]  # fuel (L/100km)
+        y_aux = preds[:, 1]   # CO2 (g/km)
 
-            input_details = dnn.get_input_details()
-            output_details = dnn.get_output_details()
+    # Run Sobol analysis
+    Si_main = sobol.analyze(problem, y_main, calc_second_order=False)
+    Si_aux = sobol.analyze(problem, y_aux, calc_second_order=False)
 
-            dnn.resize_tensor_input(input_details[0]['index'], Xs.shape)
-            dnn.allocate_tensors()
-            dnn.set_tensor(input_details[0]['index'], Xs)
-            dnn.invoke()
-
-            preds = dnn.get_tensor(output_details[0]['index'])
-            preds = np.asarray(preds)
-            if preds.ndim == 1:
-                preds = np.vstack([preds, np.zeros_like(preds)]).T
-            return preds
-    # Sobol sampling
-    X = saltelli.sample(PROBLEM, N, calc_second_order=False)
-    Y = predict(X)
-    y_e = Y[:, 0]
-    y_r = Y[:, 1]
-
-    Si_e = sobol.analyze(PROBLEM, y_e, calc_second_order=False)
-    Si_r = sobol.analyze(PROBLEM, y_r, calc_second_order=False)
-
+    # Convert to dataframe
     def to_df(Si):
         return pd.DataFrame({
-            "factor": FACTOR_NAMES,
+            "factor": names,
             "S1": Si["S1"],
             "ST": Si["ST"]
         }).sort_values("ST", ascending=False)
 
-    return to_df(Si_e), to_df(Si_r)
+    df_main = to_df(Si_main)
+    df_aux = to_df(Si_aux)
+
+    return df_main, df_aux
 
 
+# ============================================================
+# Plot function
+# ============================================================
 def plot_sobol(df, title="Sobol Sensitivity", top_n=4):
-    """
-    Plot Sobol indices for the top N most influential factors.
-    """
-    # Select top N factors based on Total Effect (ST)
+    """Plot Sobol indices for top N factors."""
     df_top = df.sort_values("ST", ascending=False).head(top_n)
 
     fig, ax = plt.subplots(figsize=(8, 4))
     x = np.arange(len(df_top))
-
     ax.bar(x - 0.2, df_top["S1"] * 100, width=0.4, label="S1 (First-order)")
     ax.bar(x + 0.2, df_top["ST"] * 100, width=0.4, label="ST (Total)")
 

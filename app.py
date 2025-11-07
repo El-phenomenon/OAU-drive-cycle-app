@@ -4,9 +4,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Local imports
 from drivecycle.io import load_cycle
 from drivecycle.simulation import integrate_energy_for_cycle
-from drivecycle.models import predict_pce, predict_dnn
+from drivecycle.models import predict_pce, predict_pce_ice
 from drivecycle.sensitivity import run_sobol, plot_sobol
 
 # ------------------------------------------------------------
@@ -39,7 +40,7 @@ st.sidebar.markdown(
 # ------------------------------------------------------------
 # LOAD REFERENCE DRIVE CYCLE
 # ------------------------------------------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.abspath(_file_))
 DRIVE_CYCLE_PATH = os.path.join(BASE_DIR, "data", "final_drive_cycle.csv")
 
 try:
@@ -60,29 +61,29 @@ def integrate_fuel_for_cycle(cycle_df, params):
 
     t = cycle_df["time_s"].values
     v = cycle_df["speed_m_s"].values
-    dt = np.diff(t, append=t[-1] + (t[-1]-t[-2] if len(t)>1 else 1))
+    dt = np.diff(t, append=t[-1] + (t[-1]-t[-2] if len(t) > 1 else 1))
     mass = params["MASS"]; RRC = params["RRC"]; Cd = params["Cd"]; A = 2.2
-    hw = params["HW"]; aux_w = params["AUX_kW"]*1000
-    eff = max(0.01, params["Engine_Eff"]/100); idle_lph = params["Idle_Fuel_Lph"]
+    hw = params["HW"]; aux_w = params["AUX_kW"] * 1000
+    eff = max(0.01, params["Engine_Eff"] / 100); idle_lph = params["Idle_Fuel_Lph"]
 
     total_fuel_l, dist_m = 0, 0
     for i in range(len(v)):
-        vi = v[i]; ai = 0 if i==0 else (v[i]-v[i-1])/(dt[i] if dt[i]>0 else 1)
+        vi = v[i]; ai = 0 if i == 0 else (v[i] - v[i-1]) / (dt[i] if dt[i] > 0 else 1)
         v_air = vi + hw
-        F_inertia = mass*ai; F_roll = mass*g*RRC
-        F_aero = 0.5*rho_air*Cd*A*(v_air**2)
+        F_inertia = mass * ai; F_roll = mass * g * RRC
+        F_aero = 0.5 * rho_air * Cd * A * (v_air ** 2)
         F_trac = F_inertia + F_roll + F_aero
-        P_wheel = F_trac*vi
+        P_wheel = F_trac * vi
         if P_wheel >= 0:
-            P_engine = (P_wheel/0.9)+aux_w
-            fuel_l = (P_engine/eff/LHV_J_per_L)*dt[i]
+            P_engine = (P_wheel / 0.9) + aux_w
+            fuel_l = (P_engine / eff / LHV_J_per_L) * dt[i]
         else:
-            fuel_l = (idle_lph/3600)*dt[i]
+            fuel_l = (idle_lph / 3600) * dt[i]
         total_fuel_l += fuel_l
-        dist_m += vi*dt[i]
-    dist_km = dist_m/1000
-    fuel_100 = (total_fuel_l/dist_km*100) if dist_km>0 else np.nan
-    co2_km = (total_fuel_l*CO2_g_per_L/dist_km) if dist_km>0 else np.nan
+        dist_m += vi * dt[i]
+    dist_km = dist_m / 1000
+    fuel_100 = (total_fuel_l / dist_km * 100) if dist_km > 0 else np.nan
+    co2_km = (total_fuel_l * CO2_g_per_L / dist_km) if dist_km > 0 else np.nan
     return total_fuel_l, fuel_100, co2_km, dist_km
 
 # ------------------------------------------------------------
@@ -104,22 +105,22 @@ with tabs[0]:
     engine_size = st.selectbox("Engine/Motor Size", ["Small", "Standard", "Large"])
 
     if st.button("Estimate Technical Parameters"):
-        total_mass = mass + passengers*70
-        hw = {"City":0.0, "Urban Arterial":1.0, "Highway":2.5, "Rough":-1.0}[terrain]
-        rrc = {"Standard":0.010, "Low Rolling Resistance":0.007, "Worn":0.012}[tyre_type]
+        total_mass = mass + passengers * 70
+        hw = {"City": 0.0, "Urban Arterial": 1.0, "Highway": 2.5, "Rough": -1.0}[terrain]
+        rrc = {"Standard": 0.010, "Low Rolling Resistance": 0.007, "Worn": 0.012}[tyre_type]
         aux = 2.0 if ac_on else 0.8
 
         if fuel_type == "Electric Vehicle (EV)":
             params = {
                 "MASS": total_mass, "RRC": rrc, "HW": hw, "AUX_kW": aux,
                 "Tb": 25.0, "SoC_pct": 80.0, "BAge_pct": 10.0,
-                "MR_mOhm": 55.0 if engine_size!="Small" else 50.0,
+                "MR_mOhm": 55.0 if engine_size != "Small" else 50.0,
                 "BR_pct": 100.0 + 5.0, "Type": "EV"
             }
         else:
-            eff = 30.0 if engine_size=="Standard" else (25.0 if engine_size=="Large" else 35.0)
-            idle = 0.8 if engine_size=="Standard" else (1.0 if engine_size=="Large" else 0.6)
-            Cd = 0.32 if engine_size=="Small" else (0.36 if engine_size=="Standard" else 0.40)
+            eff = 30.0 if engine_size == "Standard" else (25.0 if engine_size == "Large" else 35.0)
+            idle = 0.8 if engine_size == "Standard" else (1.0 if engine_size == "Large" else 0.6)
+            Cd = 0.32 if engine_size == "Small" else (0.36 if engine_size == "Standard" else 0.40)
             params = {
                 "MASS": total_mass, "RRC": rrc, "HW": hw, "AUX_kW": aux,
                 "Cd": Cd, "Engine_Eff": eff, "Idle_Fuel_Lph": idle, "Type": "ICE"
@@ -135,12 +136,12 @@ with tabs[0]:
 with tabs[1]:
     st.header("🧮 Physics-Based Simulation")
     if "vehicle_params" not in st.session_state:
-        st.warning("Please configure your vehicle in the *Vehicle Setup* tab first.")
+        st.warning("Please configure your vehicle in the Vehicle Setup tab first.")
     elif not st.session_state["reference_cycle_loaded"]:
         st.error("Reference drive cycle not loaded.")
     else:
         params = st.session_state["vehicle_params"]
-        st.write("*Using parameters:*")
+        st.write("Using parameters:")
         st.write(pd.DataFrame(params.items(), columns=["Factor", "Value"]))
 
         if st.button("Run Physics Simulation"):
@@ -167,45 +168,63 @@ with tabs[1]:
 # TAB 3 - Surrogates
 # ------------------------------------------------------------
 with tabs[2]:
-    st.header("🤖 Surrogate Models (EV only)")
+    st.header("🤖 Surrogate Models (EV + ICE)")
     if "vehicle_params" not in st.session_state:
-        st.warning("Configure your EV first in the Vehicle Setup tab.")
-    elif st.session_state["vehicle_params"]["Type"] != "EV":
-        st.info("Surrogate models available for EVs only.")
+        st.warning("Configure your vehicle first in the Vehicle Setup tab.")
     else:
         p = st.session_state["vehicle_params"]
-        input_df = pd.DataFrame([{
-            "MASS": p["MASS"], "HW": p["HW"], "RRC": p["RRC"],
-            "Ta": 25.0, "Tb": p["Tb"], "SoC_pct": p["SoC_pct"],
-            "BAge_pct": p["BAge_pct"], "MR_mOhm": p["MR_mOhm"],
-            "AUX_kW": p["AUX_kW"], "BR_pct": p["BR_pct"]
-        }])
-        if st.button("Run Surrogate Predictions"):
-            try:
-                pce_out = predict_pce(input_df)
-                dnn_out = predict_dnn(input_df)
-                st.write("*PCE Output:*", pce_out.to_dict(orient="records")[0])
-                st.write("*DNN Output:*", dnn_out.to_dict(orient="records")[0])
-            except Exception as e:
-                st.error(f"Prediction failed: {e}")
+        if p["Type"] == "EV":
+            input_df = pd.DataFrame([{
+                "MASS": p["MASS"], "HW": p["HW"], "RRC": p["RRC"],
+                "Ta": 25.0, "Tb": p["Tb"], "SoC_pct": p["SoC_pct"],
+                "BAge_pct": p["BAge_pct"], "MR_mOhm": p["MR_mOhm"],
+                "AUX_kW": p["AUX_kW"], "BR_pct": p["BR_pct"]
+            }])
+            if st.button("Run EV Surrogate Prediction (PCE)"):
+                try:
+                    pce_out = predict_pce(input_df)
+                    st.success("EV Surrogate Prediction complete.")
+                    st.write(pce_out)
+                except Exception as e:
+                    st.error(f"Prediction failed: {e}")
+        else:
+            input_df = pd.DataFrame([{
+                "MASS": p["MASS"], "HW": p["HW"], "RRC": p["RRC"], "Cd": p["Cd"],
+                "AUX_kW": p["AUX_kW"], "Engine_Eff": p["Engine_Eff"],
+                "Idle_Fuel_Lph": p["Idle_Fuel_Lph"]
+            }])
+            if st.button("Run ICE Surrogate Prediction (PCE)"):
+                try:
+                    pce_out = predict_pce_ice(input_df)
+                    st.success("ICE Surrogate Prediction complete.")
+                    st.write(pce_out)
+                except Exception as e:
+                    st.error(f"Prediction failed: {e}")
 
 # ------------------------------------------------------------
 # TAB 4 - Sensitivity
 # ------------------------------------------------------------
 with tabs[3]:
-    st.header("📊 Sensitivity Analysis (EV only)")
-    if "vehicle_params" not in st.session_state or st.session_state["vehicle_params"]["Type"] != "EV":
-        st.info("Available for EV models only.")
+    st.header("📊 Sensitivity Analysis (EV + ICE)")
+    if "vehicle_params" not in st.session_state:
+        st.warning("Configure your vehicle first in Vehicle Setup.")
     else:
-        model_choice = st.selectbox("Select model", ["PCE", "DNN"])
+        params = st.session_state["vehicle_params"]
+        model_type = params["Type"]
         N = st.slider("Number of Sobol Samples", 128, 1024, 512, step=128)
         if st.button("Run Sensitivity Analysis"):
             try:
-                energy_df, regen_df = run_sobol(model_choice.lower(), N)
-                st.subheader("Energy Consumption (Top 4)")
-                st.pyplot(plot_sobol(energy_df, f"{model_choice} - Energy", top_n=4))
-                st.subheader("Regeneration Efficiency (Top 4)")
-                st.pyplot(plot_sobol(regen_df, f"{model_choice} - Regen", top_n=4))
+                main_df, aux_df = run_sobol(model_type, N, params)
+                if model_type == "EV":
+                    st.subheader("Energy Consumption (Top 4)")
+                    st.pyplot(plot_sobol(main_df, "EV - Energy", top_n=4))
+                    st.subheader("Regeneration Efficiency (Top 4)")
+                    st.pyplot(plot_sobol(aux_df, "EV - Regen", top_n=4))
+                else:
+                    st.subheader("Fuel Consumption (Top 4)")
+                    st.pyplot(plot_sobol(main_df, "ICE - Fuel", top_n=4))
+                    st.subheader("CO₂ Emission (Top 4)")
+                    st.pyplot(plot_sobol(aux_df, "ICE - CO2", top_n=4))
             except Exception as e:
                 st.error(f"Sensitivity failed: {e}")
 

@@ -1,0 +1,7 @@
+ICE PCE Surrogate Metrics
+=========================
+Samples: 2304
+Degree: 3
+
+Fuel (L/100km): R2=0.999694, MAE=0.070361 L/100km
+CO2 (g/km): R2=0.999694, MAE=1.683028 g/km
