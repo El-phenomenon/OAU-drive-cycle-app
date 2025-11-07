@@ -142,18 +142,18 @@ with tabs[0]:
 
         if fuel_type == "Electric Vehicle (EV)":
             params = {
-                "MASS": total_mass, "RRC": rrc, "HW": hw, "AUX_kW": aux,
-                "Tb": 25.0, "SoC_pct": 80.0, "BAge_pct": 10.0,
-                "MR_mOhm": 55.0 if engine_size != "Small" else 50.0,
-                "BR_pct": 100.0 + 5.0, "Type": "EV"
+                "Total mass of the vehicle (kg)": total_mass, "Rolling resistance coefficient, RRC": rrc, "Headwind, HW": hw, "Auxiliary Power, AUX_kW": aux,
+                "Temperature of Battery Pack, Tb (celsius)": 25.0, "State of charge of battery, SoC_pct": 80.0, "Battery capacity fade due to aging, BAge_pct": 10.0,
+                "Internal resistance of the motor, MR_mOhm": 55.0 if engine_size != "Small" else 50.0,
+                "Internal resistance growth of the battery, BR_pct": 100.0 + 5.0, "Type": "EV"
             }
         else:
             eff = 30.0 if engine_size == "Standard" else (25.0 if engine_size == "Large" else 35.0)
             idle = 0.8 if engine_size == "Standard" else (1.0 if engine_size == "Large" else 0.6)
             Cd = 0.32 if engine_size == "Small" else (0.36 if engine_size == "Standard" else 0.40)
             params = {
-                "MASS": total_mass, "RRC": rrc, "HW": hw, "AUX_kW": aux,
-                "Cd": Cd, "Engine_Eff": eff, "Idle_Fuel_Lph": idle, "Type": "ICE"
+                "Total mass of the vehicle": total_mass, "Rolling Resistance coefficient, RRC": rrc, "Headwind, HW": hw, "Auxiliary Power, AUX_kW": aux,
+                "Drag Coefficient, Cd": Cd, "Engine_Eff": eff, "Idle_Fuel_Lph": idle, "Type": "ICE"
             }
 
         st.session_state["vehicle_params"] = params
