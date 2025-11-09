@@ -344,6 +344,6 @@ with tabs[3]:
 st.markdown("""
 ---
 <div style='text-align:center; font-size: small; color: grey;'>
-Developed by Prof. B.O. Malomo, Blessing Babatope & Gabriel Oke | Dept. of Mechanical Engineering, OAU Ile-Ife
+Developed by Prof. B.O. Malomo, Blessing Babatope & Gabriel Oke | Dept. of Mechanical Engineering, OAU, Ile-Ife
 </div>
 """, unsafe_allow_html=True)
