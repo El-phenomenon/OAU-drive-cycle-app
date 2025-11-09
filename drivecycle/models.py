@@ -169,7 +169,7 @@ def predict_pce_ice(X_df):
         eff = X[:, 5]
         fuel = 20 + 0.002 * (mass - 1500) - 0.2 * (eff - 25)
         co2 = 2392 * fuel / 100  # ~2392 g per L, scaled
-        return pd.DataFrame({"fuel_l_per_100km": fuel, "co2_g_per_km": co2})
+        return pd.DataFrame({"fuel_l_per_100km": fuel, "co2_g_emission_per_km": co2})
 
     poly, model = pce_ice
     X_poly = poly.transform(X)
