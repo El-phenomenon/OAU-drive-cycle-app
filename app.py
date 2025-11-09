@@ -187,7 +187,7 @@ with tabs[1]:
         "Cd": params["Drag Coefficient, Cd"],
         "Engine_Eff": params["Engine_Eff"],
         "Idle_Fuel_Lph": params["Idle_Fuel_Lph"]
-    }
+    }#y
                 total_fuel_l, fuel_100, co2_km, dist_km = integrate_fuel_for_cycle(cycle_df, params)
                 st.success("ICE simulation complete.")
                 st.metric("Fuel (L/100 km)", f"{fuel_100:.3f}")
