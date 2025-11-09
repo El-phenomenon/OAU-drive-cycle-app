@@ -178,9 +178,8 @@ with tabs[1]:
                 st.success("EV simulation complete.")
                 st.metric("Energy (kWh/km)", f"{result['energy_kwh_per_km']:.3f}")
                 st.metric("Regeneration (%)", f"{result['regen_pct']:.2f}")
-            else:
-    # Convert descriptive names to short internal keys
-    fuel_params = {
+           else:
+               fuel_params = {
         "MASS": params["Total mass of the vehicle"],
         "RRC": params["Rolling Resistance coefficient, RRC"],
         "HW": params["Headwind, HW"],
