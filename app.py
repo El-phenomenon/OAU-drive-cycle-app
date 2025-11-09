@@ -88,14 +88,12 @@ def integrate_fuel_for_cycle(cycle_df, params):
     g = 9.81
     LHV_J_per_L = 34.2e6
     CO2_g_per_L = 2392.0
-
     t = cycle_df["time_s"].values
     v = cycle_df["speed_m_s"].values
     dt = np.diff(t, append=t[-1] + (t[-1]-t[-2] if len(t) > 1 else 1))
     mass = params["MASS"]; RRC = params["RRC"]; Cd = params["Cd"]; A = 2.2
     hw = params["HW"]; aux_w = params["AUX_kW"] * 1000
     eff = max(0.01, params["Engine_Eff"] / 100); idle_lph = params["Idle_Fuel_Lph"]
-
     total_fuel_l, dist_m = 0, 0
     for i in range(len(v)):
         vi = v[i]; ai = 0 if i == 0 else (v[i] - v[i-1]) / (dt[i] if dt[i] > 0 else 1)
@@ -181,11 +179,20 @@ with tabs[1]:
                 st.metric("Energy (kWh/km)", f"{result['energy_kwh_per_km']:.3f}")
                 st.metric("Regeneration (%)", f"{result['regen_pct']:.2f}")
             else:
-                total_fuel_l, fuel_100, co2_km, dist_km = integrate_fuel_for_cycle(cycle_df, params)
-                st.success("ICE simulation complete.")
-                st.metric("Fuel (L/100 km)", f"{fuel_100:.3f}")
-                st.metric("CO₂ emission (g/km)", f"{co2_km:.1f}")
-
+    # Convert descriptive names to short internal keys
+    fuel_params = {
+        "MASS": params["Total mass of the vehicle"],
+        "RRC": params["Rolling Resistance coefficient, RRC"],
+        "HW": params["Headwind, HW"],
+        "AUX_kW": params["Auxiliary Power, AUX_kW"],
+        "Cd": params["Drag Coefficient, Cd"],
+        "Engine_Eff": params["Engine_Eff"],
+        "Idle_Fuel_Lph": params["Idle_Fuel_Lph"]
+    }
+    total_fuel_l, fuel_100, co2_km, dist_km = integrate_fuel_for_cycle(cycle_df, fuel_params)
+    st.success("ICE simulation complete.")
+    st.metric("Fuel (L/100 km)", f"{fuel_100:.3f}")
+    st.metric("CO₂ emission (g/km)", f"{co2_km:.1f}")
         st.subheader("Reference Drive Cycle (Speed vs Time)")
         fig, ax = plt.subplots(figsize=(8, 3))
         ax.plot(cycle_df["time_s"], cycle_df["speed_m_s"], color="blue")
