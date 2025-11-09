@@ -71,7 +71,7 @@ st.sidebar.markdown(
 # ------------------------------------------------------------
 # LOAD REFERENCE DRIVE CYCLE
 # ------------------------------------------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(_file_))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DRIVE_CYCLE_PATH = os.path.join(BASE_DIR, "data", "final_drive_cycle.csv")
 
 try:
