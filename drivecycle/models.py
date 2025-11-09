@@ -177,4 +177,4 @@ def predict_pce_ice(X_df):
     preds = np.asarray(preds)
     if preds.ndim == 1:
         preds = np.vstack([preds, np.zeros_like(preds)]).T
-    return pd.DataFrame(preds, columns=["fuel_l_per_100km", "co2_g_per_km"])
+    return pd.DataFrame(preds, columns=["fuel_l_per_100km", "co2_g_emission_per_km"])

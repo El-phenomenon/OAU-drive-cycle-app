@@ -168,7 +168,7 @@ with tabs[0]:
             idle = 0.8 if engine_size == "Standard" else (1.0 if engine_size == "Large" else 0.6)
             Cd = 0.32 if engine_size == "Small" else (0.36 if engine_size == "Standard" else 0.40)
             params = {
-                "Total mass of the vehicle": total_mass,
+                "Total mass of the vehicle (kg)": total_mass,
                 "Rolling Resistance coefficient, RRC": rrc,
                 "Headwind, HW": hw,
                 "Auxiliary Power, AUX_kW": aux,
@@ -218,7 +218,7 @@ with tabs[1]:
             else:
                 # Use fuel_params mapping correctly
                 fuel_params = {
-                    "MASS": params["Total mass of the vehicle"],
+                    "MASS": params["Total mass of the vehicle (kg)"],
                     "RRC": params["Rolling Resistance coefficient, RRC"],
                     "HW": params["Headwind, HW"],
                     "AUX_kW": params["Auxiliary Power, AUX_kW"],
@@ -270,7 +270,7 @@ with tabs[2]:
                     st.error(f"Prediction failed: {e}")
         else:
             input_df = pd.DataFrame([{
-                "MASS": p["Total mass of the vehicle"],
+                "MASS": p["Total mass of the vehicle (kg)"],
                 "HW": p["Headwind, HW"],
                 "RRC": p["Rolling Resistance coefficient, RRC"],
                 "Cd": p["Drag Coefficient, Cd"],
@@ -313,7 +313,7 @@ with tabs[3]:
             }
         else:
             base_params = {
-                "MASS": params["Total mass of the vehicle"],
+                "MASS": params["Total mass of the vehicle (kg)"],
                 "HW": params["Headwind, HW"],
                 "RRC": params["Rolling Resistance coefficient, RRC"],
                 "Cd": params["Drag Coefficient, Cd"],
