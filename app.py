@@ -42,7 +42,7 @@ with st.expander("📘 About This App", expanded=True):
 
     ### What the App Does
     - Predicts *energy use* and *regeneration efficiency* for Electric Vehicles (EVs).
-    - Estimates *fuel consumption* and *CO₂ emissions* for Internal Combustion Engine (ICE) vehicles.
+    - Estimates *fuel consumption* and *CO₂ emissions* for Petrol-powered Internal Combustion Engine (ICE) vehicles.
     - Uses both *physics-based* and *Polynomial Chaos Expansion (PCE)* surrogate models.
     - Performs *Sobol sensitivity analysis* to identify top factors affecting vehicle performance.
 
@@ -136,7 +136,7 @@ tabs = st.tabs(["🚗 Vehicle Setup", "🧮 Physics Model", "🤖 Surrogate Mode
 # ------------------------------------------------------------
 with tabs[0]:
     st.header("🚗 Vehicle Setup & Parameter Estimation")
-    fuel_type = st.selectbox("Select Fuel Type", ["Electric Vehicle (EV)", "Internal Combustion Engine (ICE)"])
+    fuel_type = st.selectbox("Select Fuel Type", ["Electric Vehicle (EV)", "Internal Combustion Engine Vehicle (ICEV) (Petrol-powered)"])
     mass = st.number_input("Vehicle Mass (kg)", 500, 8000, 2000, step=50)
     passengers = st.number_input("Passengers", 0, 100, 2)
     terrain = st.selectbox("Road Type", ["City", "Urban Arterial", "Highway", "Rough"])
