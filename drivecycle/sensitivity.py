@@ -81,14 +81,27 @@ def run_sobol(model_type: str, N: int = 512, base_params: dict = None):
 # Plot function
 # ============================================================
 def plot_sobol(df, title="Sobol Sensitivity", top_n=4):
-    """Plot Sobol indices for top N factors."""
+    """Plot Sobol indices for top N factors with values annotated on bars."""
     df_top = df.sort_values("ST", ascending=False).head(top_n)
 
     fig, ax = plt.subplots(figsize=(8, 4))
     x = np.arange(len(df_top))
-    ax.bar(x - 0.2, df_top["S1"] * 100, width=0.4, label="S1 (First-order)")
-    ax.bar(x + 0.2, df_top["ST"] * 100, width=0.4, label="ST (Total)")
 
+    # Bars
+    bars1 = ax.bar(x - 0.2, df_top["S1"] * 100, width=0.4, label="S1 (First-order)")
+    bars2 = ax.bar(x + 0.2, df_top["ST"] * 100, width=0.4, label="ST (Total)")
+
+    # Annotate the bars with contribution percentages
+    for bar in bars1 + bars2:
+        height = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            height + 1,  # slightly above the bar
+            f"{height:.1f}%",
+            ha="center", va="bottom", fontsize=9, color="black", fontweight="bold"
+        )
+
+    # Formatting
     ax.set_xticks(x)
     ax.set_xticklabels(df_top["factor"], rotation=30, ha="right")
     ax.set_ylabel("Contribution (%)")
