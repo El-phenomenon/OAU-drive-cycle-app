@@ -37,7 +37,7 @@ with st.expander("📘 About This App", expanded=True):
     st.markdown("""
     ### Purpose of the Application
     This app simulates and analyzes *energy or fuel consumption* of vehicles 
-    using a *representative drive cycle* obtained within the Obafemi Awolowo University (OAU) campus — 
+    using a *representative drive cycle* obtained within the Obafemi Awolowo University (OAU) campus
     representing typical Nigerian driving conditions.
 
     ### What the App Does
