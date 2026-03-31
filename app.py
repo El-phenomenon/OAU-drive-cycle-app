@@ -470,7 +470,7 @@ with tabs[4]:
         st.subheader("Actionable Insights")
         recs = generate_recommendations(
     st.session_state["sensitivity_main"],
-    st.session_state["sensitivity_params"]
+    base_params   # 🔥 IMPORTANT
 )
         for rec in recs:
             st.write(f"✅ {rec}")
