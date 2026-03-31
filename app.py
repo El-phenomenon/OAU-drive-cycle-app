@@ -134,46 +134,48 @@ def integrate_fuel_for_cycle(cycle_df, params):
 def generate_recommendations(main_df):
     recommendations = []
 
-    top_factors = main_df.sort_values(by="S1", ascending=False).head(4)
+    # Safety check
+    if main_df is None or len(main_df) == 0:
+        return ["No sensitivity data available. Run analysis again."]
+
+    # Try to detect sensitivity column automatically
+    possible_cols = ["S1", "ST", "Sobol", "Importance"]
+    sens_col = None
+
+    for col in possible_cols:
+        if col in main_df.columns:
+            sens_col = col
+            break
+
+    if sens_col is None:
+        return ["Sensitivity results format not recognized."]
+
+    # Sort
+    top_factors = main_df.sort_values(by=sens_col, ascending=False).head(4)
 
     for _, row in top_factors.iterrows():
         factor = str(row.name).lower()
-        impact = row["S1"]
+        impact = row[sens_col]
+
+        # GENERIC fallback (IMPORTANT)
+        msg = f"{row.name} significantly affects performance (~{impact*100:.1f}%)."
 
         if "mass" in factor:
-            recommendations.append(
-                f"Vehicle mass contributes (~{impact*100:.1f}%). Reduce unnecessary load."
-            )
-
+            msg += " Reduce vehicle weight."
         elif "headwind" in factor or "hw" in factor:
-            recommendations.append(
-                f"Aerodynamic effects (~{impact*100:.1f}%). Maintain moderate speeds."
-            )
-
-        elif "rolling" in factor or "rrc" in factor:
-            recommendations.append(
-                f"Rolling resistance (~{impact*100:.1f}%). Maintain proper tyre pressure."
-            )
-
-        elif "drag" in factor or "cd" in factor:
-            recommendations.append(
-                f"Aerodynamic drag (~{impact*100:.1f}%). Improve vehicle aerodynamics."
-            )
-
+            msg += " Reduce speed or drag."
+        elif "rrc" in factor or "rolling" in factor:
+            msg += " Improve tyre condition."
+        elif "cd" in factor or "drag" in factor:
+            msg += " Improve aerodynamics."
         elif "aux" in factor:
-            recommendations.append(
-                f"Auxiliary loads (~{impact*100:.1f}%). Reduce AC and electrical usage."
-            )
-
+            msg += " Reduce auxiliary loads."
         elif "engine" in factor:
-            recommendations.append(
-                f"Engine efficiency (~{impact*100:.1f}%). Ensure proper maintenance."
-            )
-
+            msg += " Improve engine efficiency."
         elif "soc" in factor:
-            recommendations.append(
-                f"Battery charge (~{impact*100:.1f}%). Avoid very low SoC levels."
-            )
+            msg += " Maintain optimal battery charge."
+
+        recommendations.append(msg)
 
     return recommendations
 
