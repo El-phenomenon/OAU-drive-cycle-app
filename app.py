@@ -410,9 +410,6 @@ with tabs[4]:
 
         st.write("Based on your vehicle configuration and driving conditions:")
 
-    if len(recs) == 0:
-        st.info("No strong dominant factors identified. Try increasing sample size.")
-    else:
         for rec in recs:
             st.write(f"✅ {rec}")
 
