@@ -167,59 +167,59 @@ def generate_recommendations(main_df, base_params):
 
         elif "RRC" in factor:
             recommendations.append(
-                f"Rolling resistance (~{impact*100:.1f}%). Maintain proper tyre pressure and use low-resistance tyres."
+                f"Rolling resistance contributes (~{impact*100:.1f}%). Maintain proper tyre pressure and use low-resistance tyres."
             )
 
         elif "HW" in factor:
             recommendations.append(
-                f"Headwind (~{impact*100:.1f}%). Avoid high-speed driving to reduce aerodynamic losses."
+                f"Headwind contributes (~{impact*100:.1f}%). Avoid high-speed driving to reduce aerodynamic losses."
             )
 
         elif "AUX_KW" in factor:
             recommendations.append(
-                f"Auxiliary load (~{impact*100:.1f}%). Limit AC and electrical usage when possible."
+                f"Auxiliary load contributes (~{impact*100:.1f}%). Limit AC and electrical usage when possible."
             )
 
         # ---------------- EV-SPECIFIC ----------------
         elif factor == "Tb":
             recommendations.append(
-                f"Battery temperature (~{impact*100:.1f}%). Keep battery within optimal thermal range for efficiency."
+                f"Battery temperature contributes (~{impact*100:.1f}%). Keep battery within optimal thermal range for efficiency."
             )
 
         elif factor == "SoC_pct":
             recommendations.append(
-                f"Battery charge (~{impact*100:.1f}%). Avoid deep discharge; maintain moderate SoC levels."
+                f"Battery charge contributes (~{impact*100:.1f}%). Avoid deep discharge; maintain moderate SoC levels."
             )
 
         elif factor == "BAge_pct":
             recommendations.append(
-                f"Battery aging (~{impact*100:.1f}%). Consider battery health monitoring and replacement planning."
+                f"Battery aging contributes (~{impact*100:.1f}%). Consider battery health monitoring and replacement planning."
             )
 
         elif factor == "MR_mOhm":
             recommendations.append(
-                f"Motor resistance (~{impact*100:.1f}%). Use efficient motors and maintain electrical components."
+                f"Motor resistance contributes (~{impact*100:.1f}%). Use efficient motors and maintain electrical components."
             )
 
         elif factor == "BR_pct":
             recommendations.append(
-                f"Battery resistance growth (~{impact*100:.1f}%). Reduce thermal stress and avoid overcharging."
+                f"Battery resistance growth contributes (~{impact*100:.1f}%). Reduce thermal stress and avoid overcharging."
             )
 
         # ---------------- ICE-SPECIFIC ----------------
         elif factor == "Cd":
             recommendations.append(
-                f"Aerodynamic drag (~{impact*100:.1f}%). Improve vehicle aerodynamics or maintain moderate speeds."
+                f"Aerodynamic drag contributes (~{impact*100:.1f}%). Improve vehicle aerodynamics or maintain moderate speeds."
             )
 
         elif factor == "Engine_Eff":
             recommendations.append(
-                f"Engine efficiency (~{impact*100:.1f}%). Regular servicing improves fuel economy."
+                f"Engine efficiency contributes (~{impact*100:.1f}%). Regular servicing improves fuel economy."
             )
 
         elif factor == "Idle_Fuel_Lph":
             recommendations.append(
-                f"Idle fuel consumption (~{impact*100:.1f}%). Avoid prolonged idling to reduce fuel waste."
+                f"Idle fuel consumption contributes (~{impact*100:.1f}%). Avoid prolonged idling to reduce fuel waste."
             )
 
         # ---------------- FALLBACK ----------------
