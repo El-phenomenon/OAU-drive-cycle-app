@@ -160,7 +160,7 @@ def generate_recommendations(main_df, base_params):
         # PARAMETER-SPECIFIC DECISIONS
         # -------------------------------
 
-        if factor == "Total mass of the vehicle (kg)":
+        if factor == "MASS":
             recommendations.append(
                 f"Vehicle mass contributes (~{impact*100:.1f}%). Reduce passenger/load weight to improve efficiency."
             )
