@@ -134,46 +134,45 @@ def integrate_fuel_for_cycle(cycle_df, params):
 def generate_recommendations(main_df):
     recommendations = []
 
-    # Sort by Sobol index
     top_factors = main_df.sort_values(by="S1", ascending=False).head(4)
 
     for _, row in top_factors.iterrows():
-        factor = row.name   # ✅ FIXED HERE
+        factor = str(row.name).lower()
         impact = row["S1"]
 
-        if factor == "MASS":
+        if "mass" in factor:
             recommendations.append(
                 f"Vehicle mass contributes (~{impact*100:.1f}%). Reduce unnecessary load."
             )
 
-        elif factor == "HW":
+        elif "headwind" in factor or "hw" in factor:
             recommendations.append(
-                f"Headwind impact (~{impact*100:.1f}%). Maintain moderate speeds."
+                f"Aerodynamic effects (~{impact*100:.1f}%). Maintain moderate speeds."
             )
 
-        elif factor == "RRC":
+        elif "rolling" in factor or "rrc" in factor:
             recommendations.append(
-                f"Rolling resistance (~{impact*100:.1f}%). Use proper tyre pressure."
+                f"Rolling resistance (~{impact*100:.1f}%). Maintain proper tyre pressure."
             )
 
-        elif factor == "Cd":
+        elif "drag" in factor or "cd" in factor:
             recommendations.append(
                 f"Aerodynamic drag (~{impact*100:.1f}%). Improve vehicle aerodynamics."
             )
 
-        elif factor == "AUX_kW":
+        elif "aux" in factor:
             recommendations.append(
-                f"Auxiliary loads (~{impact*100:.1f}%). Reduce AC usage when possible."
+                f"Auxiliary loads (~{impact*100:.1f}%). Reduce AC and electrical usage."
             )
 
-        elif factor == "Engine_Eff":
+        elif "engine" in factor:
             recommendations.append(
-                f"Engine efficiency (~{impact*100:.1f}%). Maintain engine regularly."
+                f"Engine efficiency (~{impact*100:.1f}%). Ensure proper maintenance."
             )
 
-        elif factor == "SoC_pct":
+        elif "soc" in factor:
             recommendations.append(
-                f"Battery charge (~{impact*100:.1f}%). Avoid very low SoC."
+                f"Battery charge (~{impact*100:.1f}%). Avoid very low SoC levels."
             )
 
     return recommendations
@@ -411,6 +410,9 @@ with tabs[4]:
 
         st.write("Based on your vehicle configuration and driving conditions:")
 
+    if len(recs) == 0:
+        st.info("No strong dominant factors identified. Try increasing sample size.")
+    else:
         for rec in recs:
             st.write(f"✅ {rec}")
 
