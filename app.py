@@ -11,44 +11,6 @@ from drivecycle.models import predict_pce, predict_pce_ice
 from drivecycle.sensitivity import run_sobol, plot_sobol
 
 # ------------------------------------------------------------
-# DECISION SUPPORT FUNCTION
-# ------------------------------------------------------------
-def generate_recommendations(model_type, performance, sensitivity_df):
-    recommendations = []
-
-    if sensitivity_df is not None and not sensitivity_df.empty:
-        top_factors = sensitivity_df.sort_values(by="ST", ascending=False)["Parameter"].head(3).tolist()
-
-        for factor in top_factors:
-            if factor == "MASS":
-                recommendations.append("Reduce vehicle mass to improve efficiency.")
-            elif factor == "HW":
-                recommendations.append("Reduce exposure to headwinds.")
-            elif factor == "RRC":
-                recommendations.append("Use low rolling resistance tyres.")
-            elif factor == "AUX_kW":
-                recommendations.append("Reduce auxiliary loads (e.g., AC usage).")
-            elif factor == "Cd":
-                recommendations.append("Improve vehicle aerodynamics.")
-            elif factor == "Engine_Eff":
-                recommendations.append("Improve engine efficiency.")
-            elif factor == "BAge_pct":
-                recommendations.append("Battery degradation is significant — monitor health.")
-            elif factor == "MR_mOhm":
-                recommendations.append("Motor resistance impacts performance.")
-
-    # Performance rule
-    if model_type == "EV":
-        if performance.get("energy_kwh_per_km", 0) > 0.25:
-            recommendations.append("High energy consumption detected — optimize conditions.")
-    else:
-        if performance.get("fuel_100", 0) > 12:
-            recommendations.append("High fuel consumption detected — improve efficiency factors.")
-
-    return recommendations
-
-
-# ------------------------------------------------------------
 # PAGE CONFIG
 # ------------------------------------------------------------
 st.set_page_config(page_title="OAU Drive Cycle Energy Simulator", layout="wide")
@@ -69,18 +31,47 @@ with col3:
 st.markdown("---")
 
 # ------------------------------------------------------------
-# ABOUT
+# APP INTRODUCTION / README SECTION
 # ------------------------------------------------------------
 with st.expander("📘 About This App", expanded=True):
-    st.markdown("""Your existing description here...""")
+    st.markdown("""
+    ### Purpose of the Application
+    This app simulates and analyzes *energy or fuel consumption* of vehicles 
+    using a *representative drive cycle* obtained within the Obafemi Awolowo University (OAU) campus
+    representing typical Nigerian driving conditions.
+
+    ### What the App Does
+    - Predicts *energy use* and *regeneration efficiency* for Electric Vehicles (EVs).
+    - Estimates *fuel consumption* and *CO₂ emissions* for Petrol-powered Internal Combustion Engine (ICE) vehicles.
+    - Uses both *physics-based* and *Polynomial Chaos Expansion (PCE)* surrogate models.
+    - Performs *Sobol sensitivity analysis* to identify top factors affecting vehicle performance.
+    - Provides *decision support recommendations* based on sensitivity analysis.
+
+    ### How It Works
+    1. Configure your vehicle (EV or ICE) and conditions in Vehicle Setup.
+    2. Run Physics Model to compute fuel/energy performance using the OAU drive cycle.
+    3. Use Surrogate Models for instant performance estimation.
+    4. Run Sensitivity Analysis to find the 4 most influential factors.
+    5. Get actionable recommendations in Decision Support tab.
+
+    ---
+    *Developed by:*  
+    Prof. B.O. Malomo · Blessing Babatope · Gabriel Oke  
+    Department of Mechanical Engineering, Obafemi Awolowo University, Ile-Ife.
+    """)
 
 # Sidebar branding
 scol1, scol2 = st.sidebar.columns(2)
 scol1.image("photos/OAU_logo.png", width=45)
 scol2.image("photos/Mech.png", width=45)
+st.sidebar.markdown(
+    "<div style='text-align:center; font-size:13px; color:#004aad;'>"
+    "<b>Obafemi Awolowo University</b><br>Dept. of Mechanical Engineering</div>",
+    unsafe_allow_html=True,
+)
 
 # ------------------------------------------------------------
-# LOAD DRIVE CYCLE
+# LOAD REFERENCE DRIVE CYCLE
 # ------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DRIVE_CYCLE_PATH = os.path.join(BASE_DIR, "data", "final_drive_cycle.csv")
@@ -93,7 +84,7 @@ except Exception as e:
     cycle_df = None
 
 # ------------------------------------------------------------
-# ICE MODEL
+# ICE MODEL HELPER
 # ------------------------------------------------------------
 def integrate_fuel_for_cycle(cycle_df, params):
     rho_air = 1.225
@@ -103,124 +94,331 @@ def integrate_fuel_for_cycle(cycle_df, params):
 
     t = cycle_df["time_s"].values
     v = cycle_df["speed_m_s"].values
-    dt = np.diff(t, append=t[-1])
+    dt = np.diff(t, append=t[-1] + (t[-1] - t[-2] if len(t) > 1 else 1))
+
+    mass = params["MASS"]
+    RRC = params["RRC"]
+    Cd = params["Cd"]
+    A = 2.2
+    hw = params["HW"]
+    aux_w = params["AUX_kW"] * 1000
+    eff = max(0.01, params["Engine_Eff"] / 100)
+    idle_lph = params["Idle_Fuel_Lph"]
 
     total_fuel_l, dist_m = 0, 0
-
     for i in range(len(v)):
         vi = v[i]
-        dt_i = dt[i] if dt[i] > 0 else 1
-        ai = 0 if i == 0 else (v[i] - v[i - 1]) / dt_i
-
-        F = params["MASS"] * ai
-        P = F * vi
-
-        fuel_l = max(0, P) * dt_i / (params["Engine_Eff"] / 100 * LHV_J_per_L)
+        ai = 0 if i == 0 else (v[i] - v[i - 1]) / (dt[i] if dt[i] > 0 else 1)
+        v_air = vi + hw
+        F_inertia = mass * ai
+        F_roll = mass * g * RRC
+        F_aero = 0.5 * rho_air * Cd * A * (v_air ** 2)
+        F_trac = F_inertia + F_roll + F_aero
+        P_wheel = F_trac * vi
+        if P_wheel >= 0:
+            P_engine = (P_wheel / 0.9) + aux_w
+            fuel_l = (P_engine / eff / LHV_J_per_L) * dt[i]
+        else:
+            fuel_l = (idle_lph / 3600) * dt[i]
         total_fuel_l += fuel_l
-        dist_m += vi * dt_i
+        dist_m += vi * dt[i]
 
     dist_km = dist_m / 1000
-    fuel_100 = (total_fuel_l / dist_km * 100) if dist_km > 0 else 0
-    co2_km = (total_fuel_l * CO2_g_per_L / dist_km) if dist_km > 0 else 0
-
+    fuel_100 = (total_fuel_l / dist_km * 100) if dist_km > 0 else np.nan
+    co2_km = (total_fuel_l * CO2_g_per_L / dist_km) if dist_km > 0 else np.nan
     return total_fuel_l, fuel_100, co2_km, dist_km
 
+# ------------------------------------------------------------
+# DECISION SUPPORT FUNCTION
+# ------------------------------------------------------------
+def generate_recommendations(main_df):
+    recommendations = []
+
+    top_factors = main_df.sort_values(by="S1", ascending=False).head(4)
+
+    for _, row in top_factors.iterrows():
+        factor = row["Parameter"]
+        impact = row["S1"]
+
+        if factor == "MASS":
+            recommendations.append(
+                f"Vehicle mass contributes (~{impact*100:.1f}%). Reduce unnecessary load."
+            )
+
+        elif factor == "HW":
+            recommendations.append(
+                f"Headwind impact (~{impact*100:.1f}%). Maintain moderate speeds."
+            )
+
+        elif factor == "RRC":
+            recommendations.append(
+                f"Rolling resistance (~{impact*100:.1f}%). Use proper tyre pressure."
+            )
+
+        elif factor == "Cd":
+            recommendations.append(
+                f"Aerodynamic drag (~{impact*100:.1f}%). Improve vehicle aerodynamics."
+            )
+
+        elif factor == "AUX_kW":
+            recommendations.append(
+                f"Auxiliary loads (~{impact*100:.1f}%). Reduce AC usage when possible."
+            )
+
+        elif factor == "Engine_Eff":
+            recommendations.append(
+                f"Engine efficiency (~{impact*100:.1f}%). Maintain engine regularly."
+            )
+
+        elif factor == "SoC_pct":
+            recommendations.append(
+                f"Battery charge (~{impact*100:.1f}%). Avoid very low SoC."
+            )
+
+    return recommendations
 
 # ------------------------------------------------------------
 # TABS
 # ------------------------------------------------------------
-tabs = st.tabs(["🚗 Vehicle Setup", "🧮 Physics Model", "🤖 Surrogate Models", "📊 Sensitivity Analysis"])
+tabs = st.tabs([
+    "🚗 Vehicle Setup",
+    "🧮 Physics Model",
+    "🤖 Surrogate Models",
+    "📊 Sensitivity Analysis",
+    "💡 Decision Support"
+])
 
 # ------------------------------------------------------------
-# TAB 1
+# TAB 1 - Vehicle Setup
 # ------------------------------------------------------------
 with tabs[0]:
-    st.header("Vehicle Setup")
+    st.header("🚗 Vehicle Setup & Parameter Estimation")
+    fuel_type = st.selectbox("Select Fuel Type", ["Electric Vehicle (EV)", "Internal Combustion Engine Vehicle (ICEV) (Petrol-powered)"])
+    mass = st.number_input("Vehicle Mass (kg)", 500, 8000, 2000, step=50)
+    passengers = st.number_input("Passengers", 0, 100, 2)
+    terrain = st.selectbox("Road Type", ["City", "Urban Arterial", "Highway", "Rough"])
+    ac_on = st.checkbox("Air conditioner/heavy auxiliary load", value=False)
+    tyre_type = st.selectbox("Tyre Condition", ["Standard", "Low Rolling Resistance", "Worn"])
+    engine_size = st.selectbox("Engine/Motor Size", ["Small", "Standard", "Large"])
 
-    fuel_type = st.selectbox("Fuel Type", ["EV", "ICE"])
-    mass = st.number_input("Mass", 500, 8000, 2000)
+    if st.button("Estimate Technical Parameters"):
+        total_mass = mass + passengers * 70
+        hw = {"City": 0.0, "Urban Arterial": 1.0, "Highway": 2.5, "Rough": -1.0}[terrain]
+        rrc = {"Standard": 0.010, "Low Rolling Resistance": 0.007, "Worn": 0.012}[tyre_type]
+        aux = 2.0 if ac_on else 0.8
 
-    if st.button("Estimate Parameters"):
-        params = {
-            "Total mass of the vehicle (kg)": mass,
-            "Rolling resistance coefficient, RRC": 0.01,
-            "Headwind, HW": 1.0,
-            "Auxiliary Power, AUX_kW": 1.0,
-            "Type": fuel_type,
-        }
+        if fuel_type == "Electric Vehicle (EV)":
+            params = {
+                "Total mass of the vehicle (kg)": total_mass,
+                "Rolling resistance coefficient, RRC": rrc,
+                "Headwind, HW": hw,
+                "Auxiliary Power, AUX_kW": aux,
+                "Temperature of Battery Pack, Tb (celsius)": 25.0,
+                "State of charge of battery, SoC_pct": 80.0,
+                "Battery capacity fade due to aging, BAge_pct": 10.0,
+                "Internal resistance of the motor, MR_mOhm": 55.0 if engine_size != "Small" else 50.0,
+                "Internal resistance growth of the battery, BR_pct": 100.0 + 5.0,
+                "Type": "EV",
+            }
+        else:
+            eff = 30.0 if engine_size == "Standard" else (25.0 if engine_size == "Large" else 35.0)
+            idle = 0.8 if engine_size == "Standard" else (1.0 if engine_size == "Large" else 0.6)
+            Cd = 0.32 if engine_size == "Small" else (0.36 if engine_size == "Standard" else 0.40)
+            params = {
+                "Total mass of the vehicle (kg)": total_mass,
+                "Rolling Resistance coefficient, RRC": rrc,
+                "Headwind, HW": hw,
+                "Auxiliary Power, AUX_kW": aux,
+                "Drag Coefficient, Cd": Cd,
+                "Engine_Eff": eff,
+                "Idle_Fuel_Lph": idle,
+                "Type": "ICE",
+            }
+
         st.session_state["vehicle_params"] = params
-        st.success("Done")
+        st.success("✅ Parameters estimated successfully!")
+        st.write(pd.DataFrame(params.items(), columns=["Factor", "Value"]))
 
 # ------------------------------------------------------------
-# TAB 2
+# TAB 2 - Physics Model
 # ------------------------------------------------------------
 with tabs[1]:
-    st.header("Physics Model")
-
-    if "vehicle_params" in st.session_state:
+    st.header("🧮 Physics-Based Simulation")
+    if "vehicle_params" not in st.session_state:
+        st.warning("Please configure your vehicle in the Vehicle Setup tab first.")
+    elif not st.session_state["reference_cycle_loaded"]:
+        st.error("Reference drive cycle not loaded.")
+    else:
         params = st.session_state["vehicle_params"]
+        st.write("Using parameters:")
+        st.write(pd.DataFrame(params.items(), columns=["Factor", "Value"]))
 
-        if st.button("Run Simulation"):
-
+        if st.button("Run Physics Simulation"):
             if params["Type"] == "EV":
-                result = integrate_energy_for_cycle(cycle_df, {
+                # Map descriptive names to internal short names
+                ev_params = {
                     "MASS": params["Total mass of the vehicle (kg)"],
                     "RRC": params["Rolling resistance coefficient, RRC"],
                     "HW": params["Headwind, HW"],
                     "AUX_kW": params["Auxiliary Power, AUX_kW"],
-                    "Ta": 25
-                })
-
-                st.session_state["performance"] = result
-                st.metric("Energy", result["energy_kwh_per_km"])
-
+                    "Tb": params["Temperature of Battery Pack, Tb (celsius)"],
+                    "SoC_pct": params["State of charge of battery, SoC_pct"],
+                    "BAge_pct": params["Battery capacity fade due to aging, BAge_pct"],
+                    "MR_mOhm": params["Internal resistance of the motor, MR_mOhm"],
+                    "BR_pct": params["Internal resistance growth of the battery, BR_pct"],
+                    "Ta": 25.0,
+                }
+                result = integrate_energy_for_cycle(cycle_df, ev_params)
+                st.success("EV simulation complete.")
+                st.metric("Energy (kWh/km)", f"{result['energy_kwh_per_km']:.3f}")
+                st.metric("Regeneration (%)", f"{result['regen_pct']:.2f}")
             else:
-                total_fuel_l, fuel_100, co2_km, dist_km = integrate_fuel_for_cycle(cycle_df, {
+                # Use fuel_params mapping correctly
+                fuel_params = {
                     "MASS": params["Total mass of the vehicle (kg)"],
-                    "RRC": params["Rolling resistance coefficient, RRC"],
+                    "RRC": params["Rolling Resistance coefficient, RRC"],
                     "HW": params["Headwind, HW"],
                     "AUX_kW": params["Auxiliary Power, AUX_kW"],
-                    "Engine_Eff": 30,
-                })
+                    "Cd": params["Drag Coefficient, Cd"],
+                    "Engine_Eff": params["Engine_Eff"],
+                    "Idle_Fuel_Lph": params["Idle_Fuel_Lph"],
+                }
+                total_fuel_l, fuel_100, co2_km, dist_km = integrate_fuel_for_cycle(cycle_df, fuel_params)
+                st.success("ICE simulation complete.")
+                st.metric("Fuel (L/100 km)", f"{fuel_100:.3f}")
+                st.metric("CO₂ emission (g/km)", f"{co2_km:.1f}")
 
-                st.session_state["performance"] = {"fuel_100": fuel_100}
-                st.metric("Fuel", fuel_100)
+        st.subheader("Reference Drive Cycle (Speed vs Time)")
+        fig, ax = plt.subplots(figsize=(8, 3))
+        ax.plot(cycle_df["time_s"], cycle_df["speed_m_s"], color="blue")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Speed (m/s)")
+        ax.grid(True)
+        st.pyplot(fig)
 
 # ------------------------------------------------------------
-# TAB 3 (UNCHANGED)
+# TAB 3 - Surrogates
 # ------------------------------------------------------------
 with tabs[2]:
-    st.header("Surrogate Model")
+    st.header("🤖 Surrogate Model (PCE)")
+    if "vehicle_params" not in st.session_state:
+        st.warning("Configure your vehicle first in the Vehicle Setup tab.")
+    else:
+        p = st.session_state["vehicle_params"]
+        if p["Type"] == "EV":
+            input_df = pd.DataFrame([{
+                "MASS": p["Total mass of the vehicle (kg)"],
+                "HW": p["Headwind, HW"],
+                "RRC": p["Rolling resistance coefficient, RRC"],
+                "Ta": 25.0,
+                "Tb": p["Temperature of Battery Pack, Tb (celsius)"],
+                "SoC_pct": p["State of charge of battery, SoC_pct"],
+                "BAge_pct": p["Battery capacity fade due to aging, BAge_pct"],
+                "MR_mOhm": p["Internal resistance of the motor, MR_mOhm"],
+                "AUX_kW": p["Auxiliary Power, AUX_kW"],
+                "BR_pct": p["Internal resistance growth of the battery, BR_pct"],
+            }])
+            if st.button("Run EV Surrogate Prediction (PCE)"):
+                try:
+                    pce_out = predict_pce(input_df)
+                    st.success("EV Surrogate Prediction complete.")
+                    st.write(pce_out)
+                except Exception as e:
+                    st.error(f"Prediction failed: {e}")
+        else:
+            input_df = pd.DataFrame([{
+                "MASS": p["Total mass of the vehicle (kg)"],
+                "HW": p["Headwind, HW"],
+                "RRC": p["Rolling Resistance coefficient, RRC"],
+                "Cd": p["Drag Coefficient, Cd"],
+                "AUX_kW": p["Auxiliary Power, AUX_kW"],
+                "Engine_Eff": p["Engine_Eff"],
+                "Idle_Fuel_Lph": p["Idle_Fuel_Lph"],
+            }])
+            if st.button("Run ICE Surrogate Prediction (PCE)"):
+                try:
+                    pce_out = predict_pce_ice(input_df)
+                    st.success("ICE Surrogate Prediction complete.")
+                    st.write(pce_out)
+                except Exception as e:
+                    st.error(f"Prediction failed: {e}")
 
 # ------------------------------------------------------------
-# TAB 4 - SENSITIVITY + DECISION SUPPORT
+# TAB 4 - Sensitivity
 # ------------------------------------------------------------
 with tabs[3]:
-    st.header("Sensitivity + Decision Support")
-
-    if "vehicle_params" in st.session_state:
+    st.header("📊 Sensitivity Analysis")
+    if "vehicle_params" not in st.session_state:
+        st.warning("Configure your vehicle first in Vehicle Setup.")
+    else:
         params = st.session_state["vehicle_params"]
+        model_type = params["Type"]
+        N = st.slider("Number of Sobol Samples", 128, 1024, 512, step=128)
 
-        if st.button("Run Sensitivity"):
-            main_df, aux_df = run_sobol(params["Type"], 512, {"MASS": 2000})
+        if model_type == "EV":
+            base_params = {
+                "MASS": params["Total mass of the vehicle (kg)"],
+                "RRC": params["Rolling resistance coefficient, RRC"],
+                "HW": params["Headwind, HW"],
+                "AUX_kW": params["Auxiliary Power, AUX_kW"],
+                "Tb": params["Temperature of Battery Pack, Tb (celsius)"],
+                "SoC_pct": params["State of charge of battery, SoC_pct"],
+                "BAge_pct": params["Battery capacity fade due to aging, BAge_pct"],
+                "MR_mOhm": params["Internal resistance of the motor, MR_mOhm"],
+                "BR_pct": params["Internal resistance growth of the battery, BR_pct"],
+                "Ta": 25.0,
+            }
+        else:
+            base_params = {
+                "MASS": params["Total mass of the vehicle (kg)"],
+                "HW": params["Headwind, HW"],
+                "RRC": params["Rolling Resistance coefficient, RRC"],
+                "Cd": params["Drag Coefficient, Cd"],
+                "AUX_kW": params["Auxiliary Power, AUX_kW"],
+                "Engine_Eff": params["Engine_Eff"],
+                "Idle_Fuel_Lph": params["Idle_Fuel_Lph"],
+            }
 
-            st.session_state["sensitivity_main"] = main_df
+        if st.button("Run Sensitivity Analysis"):
+            try:
+                main_df, aux_df = run_sobol(model_type, N, base_params)
+                st.session_state["sensitivity_main"] = main_df
+                if model_type == "EV":
+                    st.subheader("Energy Consumption (Top 4)")
+                    st.pyplot(plot_sobol(main_df, "EV - Energy", top_n=4))
+                    st.subheader("Regeneration Efficiency (Top 4)")
+                    st.pyplot(plot_sobol(aux_df, "EV - Regen", top_n=4))
+                else:
+                    st.subheader("Fuel Consumption (Top 4)")
+                    st.pyplot(plot_sobol(main_df, "ICE - Fuel", top_n=4))
+                    st.subheader("CO₂ Emission (Top 4)")
+                    st.pyplot(plot_sobol(aux_df, "ICE - CO₂", top_n=4))
+            except Exception as e:
+                st.error(f"Sensitivity failed: {e}")
+# ------------------------------------------------------------
+# TAB 5 - DECISION SUPPORT
+# ------------------------------------------------------------
+with tabs[4]:
+    st.header("💡 Decision Support System")
 
-            st.pyplot(plot_sobol(main_df, "Main", top_n=4))
+    if "sensitivity_main" not in st.session_state:
+        st.warning("Run Sensitivity Analysis first to generate recommendations.")
+    else:
+        st.subheader("Actionable Insights")
 
-            # ----------------------------
-            # DECISION SUPPORT
-            # ----------------------------
-            st.subheader("🧠 Recommendations")
+        recs = generate_recommendations(st.session_state["sensitivity_main"])
 
-            if "performance" in st.session_state:
-                recs = generate_recommendations(
-                    params["Type"],
-                    st.session_state["performance"],
-                    main_df
-                )
+        st.write("Based on your vehicle configuration and driving conditions:")
 
-                for r in recs:
-                    st.write(f"✅ {r}")
-            else:
-                st.warning("Run simulation first")
+        for rec in recs:
+            st.write(f"✅ {rec}")
+
+# ------------------------------------------------------------
+# FOOTER
+# ------------------------------------------------------------
+st.markdown("""
+---
+<div style='text-align:center; font-size: small; color: grey;'>
+Developed by Prof. B.O. Malomo, Blessing Babatope & Gabriel Oke | Dept. of Mechanical Engineering, OAU, Ile-Ife
+</div>
+""", unsafe_allow_html=True)
