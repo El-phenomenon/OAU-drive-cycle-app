@@ -134,10 +134,11 @@ def integrate_fuel_for_cycle(cycle_df, params):
 def generate_recommendations(main_df):
     recommendations = []
 
+    # Sort by Sobol index
     top_factors = main_df.sort_values(by="S1", ascending=False).head(4)
 
     for _, row in top_factors.iterrows():
-        factor = row["Parameter"]
+        factor = row.name   # ✅ FIXED HERE
         impact = row["S1"]
 
         if factor == "MASS":
