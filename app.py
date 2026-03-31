@@ -468,10 +468,9 @@ with tabs[4]:
         st.warning("Run Sensitivity Analysis first to generate recommendations.")
     else:
         st.subheader("Actionable Insights")
-
         recs = generate_recommendations(
     st.session_state["sensitivity_main"],
-    base_params   # 🔥 IMPORTANT
+    st.session_state["sensitivity_params"]
 )
         for rec in recs:
             st.write(f"✅ {rec}")
