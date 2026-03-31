@@ -131,51 +131,69 @@ def integrate_fuel_for_cycle(cycle_df, params):
 # ------------------------------------------------------------
 # DECISION SUPPORT FUNCTION
 # ------------------------------------------------------------
-def generate_recommendations(main_df):
+def generate_recommendations(main_df, base_params):
     recommendations = []
 
-    # Safety check
-    if main_df is None or len(main_df) == 0:
-        return ["No sensitivity data available. Run analysis again."]
+    # Get parameter names in correct order
+    param_names = list(base_params.keys())
 
-    # Try to detect sensitivity column automatically
-    possible_cols = ["S1", "ST", "Sobol", "Importance"]
-    sens_col = None
+    # Detect sensitivity column
+    sens_col = "S1" if "S1" in main_df.columns else main_df.columns[0]
 
-    for col in possible_cols:
-        if col in main_df.columns:
-            sens_col = col
-            break
-
-    if sens_col is None:
-        return ["Sensitivity results format not recognized."]
-
-    # Sort
+    # Sort top factors
     top_factors = main_df.sort_values(by=sens_col, ascending=False).head(4)
 
-    for _, row in top_factors.iterrows():
-        factor = str(row.name).lower()
+    for idx, row in top_factors.iterrows():
+        # Convert numeric index → actual parameter name
+        if isinstance(idx, (int, np.integer)) and idx < len(param_names):
+            factor = param_names[idx]
+        else:
+            factor = str(idx)
+
         impact = row[sens_col]
 
-        # GENERIC fallback (IMPORTANT)
-        msg = f"{row.name} significantly affects performance (~{impact*100:.1f}%)."
+        # Convert to lowercase for matching
+        f = factor.lower()
 
-        if "mass" in factor:
-            msg += " Reduce vehicle weight."
-        elif "headwind" in factor or "hw" in factor:
-            msg += " Reduce speed or drag."
-        elif "rrc" in factor or "rolling" in factor:
-            msg += " Improve tyre condition."
-        elif "cd" in factor or "drag" in factor:
-            msg += " Improve aerodynamics."
-        elif "aux" in factor:
-            msg += " Reduce auxiliary loads."
-        elif "engine" in factor:
-            msg += " Improve engine efficiency."
-        elif "soc" in factor:
-            msg += " Maintain optimal battery charge."
+        if "mass" in f:
+            recommendations.append(
+                f"Vehicle mass contributes (~{impact*100:.1f}%). Reduce passenger/load weight."
+            )
 
-        recommendations.append(msg)
+        elif "hw" in f or "headwind" in f:
+            recommendations.append(
+                f"Headwind effect (~{impact*100:.1f}%). Maintain moderate driving speed."
+            )
+
+        elif "rrc" in f or "rolling" in f:
+            recommendations.append(
+                f"Rolling resistance (~{impact*100:.1f}%). Use properly inflated tyres."
+            )
+
+        elif "cd" in f or "drag" in f:
+            recommendations.append(
+                f"Aerodynamic drag (~{impact*100:.1f}%). Improve vehicle aerodynamics."
+            )
+
+        elif "aux" in f:
+            recommendations.append(
+                f"Auxiliary load (~{impact*100:.1f}%). Reduce AC and electrical usage."
+            )
+
+        elif "engine" in f:
+            recommendations.append(
+                f"Engine efficiency (~{impact*100:.1f}%). Ensure proper maintenance."
+            )
+
+        elif "soc" in f:
+            recommendations.append(
+                f"Battery charge (~{impact*100:.1f}%). Avoid low battery levels."
+            )
+
+        else:
+            recommendations.append(
+                f"{factor} significantly affects performance (~{impact*100:.1f}%)."
+            )
 
     return recommendations
 
@@ -408,10 +426,10 @@ with tabs[4]:
     else:
         st.subheader("Actionable Insights")
 
-        recs = generate_recommendations(st.session_state["sensitivity_main"])
-
-        st.write("Based on your vehicle configuration and driving conditions:")
-
+        recs = generate_recommendations(
+    st.session_state["sensitivity_main"],
+    base_params   # 🔥 IMPORTANT
+)
         for rec in recs:
             st.write(f"✅ {rec}")
 
