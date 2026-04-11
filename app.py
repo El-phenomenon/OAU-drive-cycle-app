@@ -33,7 +33,7 @@ st.markdown("---")
 # ------------------------------------------------------------
 # APP INTRODUCTION
 # ------------------------------------------------------------
-with st.expander("🚘About This Application(Click to expand/collapse)", expanded=False):
+with st.expander("🚘 About This Application(Click to expand/collapse)", expanded=False):
     st.markdown("""
 
 This application is designed to simulate and analyze how vehicles consume energy or fuel under real driving conditions.
