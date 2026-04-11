@@ -31,10 +31,10 @@ with col3:
 st.markdown("---")
 
 # ------------------------------------------------------------
-# APP INTRODUCTION / README SECTION
+# APP INTRODUCTION
 # ------------------------------------------------------------
-st.markdown("""
-### 🚘 About This Application
+with st.expander("### 🚘 About This Application (Click to expand/collapse)", expanded=False):
+    st.markdown("""
 
 This application is designed to simulate and analyze how vehicles consume energy or fuel under real driving conditions within Obafemi Awolowo University (OAU) campus.
 
