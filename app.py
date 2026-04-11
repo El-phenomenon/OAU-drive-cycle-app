@@ -142,36 +142,33 @@ def generate_recommendations(main_df, base_params):
     for idx, row in top_factors.iterrows():
 
         # Map index → parameter name
-        if isinstance(idx, (int, np.integer)) and idx < len(param_names):
-            factor = param_names[idx]
-        else:
-            factor = str(idx)
-
+            factor = row["Parameter"]
+            factor_clean=factor.lower()
         # -------------------------------
         # GENERAL PARAMETERS
         # -------------------------------
 
-        if factor == "MASS":
+        if "mass" in factor_clean:
             recommendations.append(
                 "Vehicle mass is a key driver of performance. "
                 "Reducing mass lowers energy or fuel consumption and improves overall efficiency, "
                 "though it may slightly reduce regenerative braking potential."
             )
 
-        elif factor == "RRC":
+        elif "rrc" in factor_clean:
             recommendations.append(
                 "Rolling resistance plays an important role in energy losses during motion. "
                 "Using well-inflated tyres and low-resistance tyre types helps improve efficiency, "
                 "especially in stop-and-go driving conditions."
             )
 
-        elif factor == "HW":
+        elif "hw" in factor_clean:
             recommendations.append(
                 "Headwind significantly influences aerodynamic drag on the vehicle. "
                 "Maintaining moderate speeds and avoiding aggressive driving helps minimize energy loss due to air resistance."
             )
 
-        elif factor == "AUX_kW":
+        elif "aux_kw" in factor_clean:
             recommendations.append(
                 "Auxiliary systems contribute to overall energy demand in the vehicle. "
                 "Reducing air conditioning and electrical loads where possible can improve efficiency, "
@@ -180,32 +177,32 @@ def generate_recommendations(main_df, base_params):
 
         # ---------------- EV-SPECIFIC ----------------
 
-        elif factor == "Tb":
+        elif "tb" in factor_clean:
             recommendations.append(
                 "Battery temperature affects both efficiency and battery health. "
                 "Keeping the battery within an optimal temperature range improves performance "
                 "and helps extend its lifespan."
             )
 
-        elif factor == "SoC_pct":
+        elif "soc_pct" in factor_clean
             recommendations.append(
                 "Battery state of charge influences how efficiently energy is delivered and recovered. "
                 "Operating within a moderate charge range helps maintain performance and prolong battery life."
             )
 
-        elif factor == "BAge_pct":
+        elif "bage_pct" in factor_clean:
             recommendations.append(
                 "Battery aging impacts the available energy capacity over time. "
                 "Monitoring battery condition and planning for maintenance ensures consistent vehicle performance."
             )
 
-        elif factor == "MR_mOhm":
+        elif "mr_ohm" in factor_clean:
             recommendations.append(
                 "Motor internal resistance affects how efficiently electrical energy is converted to motion. "
                 "Lower resistance systems reduce energy losses and improve overall drivetrain efficiency."
             )
 
-        elif factor == "BR_pct":
+        elif "br_pct" in factor_clean:
             recommendations.append(
                 "Growth in battery internal resistance reduces energy efficiency and increases losses. "
                 "Minimizing thermal and electrical stress can help slow this degradation over time."
@@ -213,19 +210,19 @@ def generate_recommendations(main_df, base_params):
 
         # ---------------- ICE-SPECIFIC ----------------
 
-        elif factor == "Cd":
+        elif "cd" in factor_clean:
             recommendations.append(
                 "Aerodynamic drag has a strong impact on fuel consumption, especially at higher speeds. "
                 "Improving vehicle aerodynamics or driving at moderate speeds helps reduce fuel usage."
             )
 
-        elif factor == "Engine_Eff":
+        elif "ëngine_eff" in factor_clean:
             recommendations.append(
                 "Engine efficiency determines how effectively fuel is converted into useful work. "
                 "Regular maintenance and proper engine tuning can significantly improve fuel economy."
             )
 
-        elif factor == "Idle_Fuel_Lph":
+        elif "idle_fuel_lph" in factor_clean:
             recommendations.append(
                 "Fuel consumption during idling contributes to unnecessary energy loss. "
                 "Avoiding prolonged idling helps conserve fuel and reduce emissions."
