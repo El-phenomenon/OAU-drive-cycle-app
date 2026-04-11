@@ -141,17 +141,18 @@ def generate_recommendations(main_df, base_params):
     # Sort top 4
     top_factors = main_df.sort_values(by=sens_col, ascending=False).head(4)
 
-    for idx, row in top_factors.iterrows():
+    # Remove "Type" from parameters (important)
+param_names = [k for k in base_params.keys() if k != "Type"]
 
-        # -------------------------------
-        # GET PARAMETER NAME SAFELY
-        # -------------------------------
-        if "Parameter" in main_df.columns:
-            factor = str(row["Parameter"])
-        else:
-            factor = str(idx)
+for idx, row in top_factors.iterrows():
 
-        factor_clean = factor.lower()
+    # Map Sobol index → actual parameter name
+    if isinstance(idx, (int, np.integer)) and idx < len(param_names):
+        factor = param_names[idx]
+    else:
+        factor = str(idx)
+
+    factor_clean = factor.lower()
 
         # -------------------------------
         # GENERAL PARAMETERS
