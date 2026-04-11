@@ -33,33 +33,100 @@ st.markdown("---")
 # ------------------------------------------------------------
 # APP INTRODUCTION / README SECTION
 # ------------------------------------------------------------
-with st.expander("📘 About This App", expanded=True):
-    st.markdown("""
-    ### Purpose of the Application
-    This app simulates and analyzes *energy or fuel consumption* of vehicles 
-    using a *representative drive cycle* obtained within the Obafemi Awolowo University (OAU) campus
-    representing typical Nigerian driving conditions.
+st.markdown("""
+### 🚘 About This Application
 
-    ### What the App Does
-    - Predicts *energy use* and *regeneration efficiency* for Electric Vehicles (EVs).
-    - Estimates *fuel consumption* and *CO₂ emissions* for Petrol-powered Internal Combustion Engine (ICE) vehicles.
-    - Uses both *physics-based* and *Polynomial Chaos Expansion (PCE)* surrogate models.
-    - Performs *Sobol sensitivity analysis* to identify top factors affecting vehicle performance.
-    - Provides *decision support recommendations* based on sensitivity analysis.
+This application is designed to simulate and analyze how vehicles consume energy or fuel under real driving conditions within Obafemi Awolowo University (OAU) campus.
 
-    ### How It Works
-    1. Configure your vehicle (EV or ICE) and conditions in Vehicle Setup.
-    2. Run Physics Model to compute fuel/energy performance using the OAU drive cycle.
-    3. Use Surrogate Models for instant performance estimation.
-    4. Run Sensitivity Analysis to find the 4 most influential factors.
-    5. Get actionable recommendations in Decision Support tab.
+It uses a **representative drive cycle** — a recorded pattern of speed over time — which reflects how vehicles actually move in a typical Nigerian environment (including stops, accelerations, and varying speeds).
 
-    ---
-    *Developed by:*  
-    Prof. B.O. Malomo · Blessing Babatope · Gabriel Oke  
-    Department of Mechanical Engineering, Obafemi Awolowo University, Ile-Ife.
-    """)
+---
 
+### 🔍 What This App Does
+
+This tool helps you understand how different factors affect vehicle performance:
+
+#### ⚡ For Electric Vehicles (EVs):
+- Estimates **energy consumption (kWh/km)**  
+- Calculates **regenerative braking efficiency (%)**
+
+👉 *Regenerative braking* is the process where the vehicle recovers energy during braking and stores it back in the battery instead of wasting it as heat.
+
+---
+
+#### ⛽ For Petrol Vehicles (ICE):
+- Estimates **fuel consumption (L/100 km)**  
+- Calculates **CO₂ emissions (g/km)**  
+
+---
+
+### 🧠 Modeling Approach
+
+The app combines two powerful approaches:
+
+- **Physics-Based Model**  
+  Uses real engineering equations to simulate forces like:
+  - Aerodynamic drag  
+  - Rolling resistance  
+  - Vehicle mass effects  
+
+- **Surrogate Model (PCE)**  
+  A fast approximation model that provides instant predictions without running full simulations.
+
+---
+
+### 📊 Sensitivity Analysis
+
+The app performs a **Sobol sensitivity analysis** to determine:
+
+👉 *Which factors matter the most*
+
+Examples include:
+- Vehicle mass  
+- Tyre resistance  
+- Auxiliary loads (e.g., AC)  
+- Battery or engine characteristics  
+
+---
+
+### 💡 Decision Support
+
+Based on the analysis, the app provides:
+
+👉 **Simple, actionable recommendations tailored to your vehicle setup**
+
+These help you understand:
+- Where energy is being lost  
+- What changes can improve efficiency  
+- How to operate the vehicle more economically  
+
+---
+
+### 🧭 How to Use the App
+
+1. **Set up your vehicle** (EV or Petrol)
+2. **Run the physics model** to simulate performance  
+3. **Use surrogate models** for quick predictions  
+4. **Run sensitivity analysis** to identify key drivers  
+5. **View decision support recommendations** for optimization  
+
+---
+
+### 🎯 Why This Matters
+
+This tool can support:
+- Better **vehicle design decisions**
+- Smarter **driving habits**
+- Planning for **EV adoption and charging infrastructure**
+- Understanding **energy efficiency in real-world Nigerian conditions**
+
+---
+
+*Developed by:*  
+**Prof. B.O. Malomo · Blessing Babatope · Gabriel Oke**  
+Department of Mechanical Engineering  
+Obafemi Awolowo University, Ile-Ife
+""")
 # Sidebar branding
 scol1, scol2 = st.sidebar.columns(2)
 scol1.image("photos/OAU_logo.png", width=45)
