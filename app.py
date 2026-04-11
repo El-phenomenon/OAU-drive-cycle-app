@@ -121,11 +121,6 @@ This tool can support:
 - Understanding **energy efficiency in real-world Nigerian conditions**
 
 ---
-
-*Developed by:*  
-**Prof. B.O. Malomo · Blessing Babatope · Gabriel Oke**  
-Department of Mechanical Engineering  
-Obafemi Awolowo University, Ile-Ife
 """)
 # Sidebar branding
 scol1, scol2 = st.sidebar.columns(2)
