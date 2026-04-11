@@ -34,7 +34,7 @@ st.markdown("---")
 # APP INTRODUCTION / README SECTION
 # ------------------------------------------------------------
 st.markdown("""
-### About This Application
+### 🚘 About This Application
 
 This application is designed to simulate and analyze how vehicles consume energy or fuel under real driving conditions within Obafemi Awolowo University (OAU) campus.
 
@@ -42,11 +42,11 @@ It uses a **representative drive cycle**, a recorded pattern of speed over time 
 
 ---
 
-### What This App Does
+### 🔍 What This App Does
 
 This tool helps you understand how different factors affect vehicle performance:
 
-#### For Electric Vehicles (EVs):
+#### ⚡ For Electric Vehicles (EVs):
 - Estimates **energy consumption (kWh/km)**  
 - Calculates **regenerative braking efficiency (%)**
 
@@ -54,13 +54,13 @@ This tool helps you understand how different factors affect vehicle performance:
 
 ---
 
-#### For Petrol Vehicles (ICE):
+#### ⛽ For Petrol Vehicles (ICE):
 - Estimates **fuel consumption (L/100 km)**  
 - Calculates **CO₂ emissions (g/km)**  
 
 ---
 
-### Modeling Approach
+### 🧠 Modeling Approach
 
 The app combines two powerful approaches:
 
@@ -89,7 +89,7 @@ Examples include:
 
 ---
 
-### Decision Support
+### 💡 Decision Support
 
 Based on the analysis, the app provides:
 
@@ -102,7 +102,7 @@ These help you understand:
 
 ---
 
-###  How to Use the App
+### How to Use the App
 
 1. **Set up your vehicle** (EV or Petrol)
 2. **Run the physics model** to simulate performance  
