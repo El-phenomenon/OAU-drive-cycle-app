@@ -151,78 +151,89 @@ def generate_recommendations(main_df, base_params):
         # -------------------------------
         if "mass" in factor_clean:
             recommendations.append(
-                "Vehicle mass is a key driver of performance. "
-                "Reducing mass lowers energy or fuel consumption and improves overall efficiency, "
-                "though it may slightly reduce regenerative braking potential."
+                f"The mass of your vehicle ({base_params.get('MASS', 'N/A'):.0f} kg) is a major factor in its energy demand. "
+    "A heavier vehicle requires more energy to accelerate and maintain motion. "
+    "Reducing passenger or cargo load can noticeably improve efficiency."
             )
 
         elif "rrc" in factor_clean:
             recommendations.append(
-                "Rolling resistance influences how much energy is lost at the tyre-road interface. "
-                "Maintaining proper tyre pressure and using low-resistance tyres can significantly improve efficiency, "
-                "especially in urban driving conditions."
+                f"The rolling resistance coefficient of your tyres ({base_params.get('RRC', 'N/A')}) affects how much energy is lost as the vehicle moves. "
+    "Higher resistance means more energy is required to keep the car in motion. "
+    "Ensuring proper tyre inflation and using low-resistance tyres can improve efficiency."
             )
 
         elif "hw" in factor_clean:
             recommendations.append(
-                "Headwind increases aerodynamic resistance acting on the vehicle. "
-                "Driving at moderate speeds and avoiding unnecessary acceleration helps reduce energy losses due to drag."
+                 f"Under your current driving conditions, the effective headwind ({base_params.get('HW', 'N/A')} m/s) contributes to aerodynamic drag. "
+    "This increases the effort required to move the vehicle forward. "
+    "Driving at steady, moderate speeds can help reduce these aerodynamic losses."
             )
 
         elif "aux_kw" in factor_clean:
             recommendations.append(
-                "Auxiliary systems such as air conditioning and electronics draw additional power from the vehicle. "
-                "Managing these loads carefully can improve overall energy efficiency, particularly for electric vehicles."
+                f"Your auxiliary systems are drawing about {base_params.get('AUX_kW', 'N/A')} kW of power. "
+    "This includes air conditioning and onboard electronics. "
+    "These loads add directly to total energy consumption, "
+    "so minimizing unnecessary usage can improve overall vehicle efficiency."
             )
 
         # ---------------- EV-SPECIFIC ----------------
         elif "tb" in factor_clean:
             recommendations.append(
-                "Battery temperature plays a crucial role in performance and efficiency. "
-                "Operating within an optimal thermal range ensures better energy utilization and prolongs battery life."
+                f"Your battery temperature ({base_params.get('Tb', 'N/A')} °C) influences both efficiency and battery health. "
+    "Operating within an optimal temperature range ensures better energy delivery "
+    "and helps maintain long-term battery performance."
             )
 
         elif "soc_pct" in factor_clean:
             recommendations.append(
-                "Battery state of charge affects how efficiently energy is delivered and recovered. "
-                "Maintaining a moderate charge range supports consistent performance and longevity."
+                f"Your battery state of charge is currently around {base_params.get('SoC_pct', 'N/A')}%. "
+    "Operating within a moderate charge range helps maintain efficient energy usage "
+    "and supports better regenerative braking performance."
             )
 
         elif "bage_pct" in factor_clean:
             recommendations.append(
-                "Battery aging reduces available capacity over time. "
-                "Monitoring battery health and planning for maintenance helps maintain consistent vehicle performance."
+                f"The battery has an estimated aging level of {base_params.get('BAge_pct', 'N/A')}%. "
+    "As the battery ages, its effective capacity reduces, which impacts overall vehicle range and efficiency. "
+    "Monitoring battery health is important for maintaining consistent performance."
             )
 
         elif "mr_mohm" in factor_clean:
             recommendations.append(
-                "Motor internal resistance affects energy conversion efficiency. "
-                "Lower resistance systems reduce losses and improve drivetrain performance."
+                 f"The motor internal resistance in your system ({base_params.get('MR_mOhm', 'N/A')} mΩ) affects how efficiently electrical energy is converted into motion. "
+    "Higher resistance leads to greater energy losses, "
+    "so maintaining efficient motor components is key to overall performance."
             )
 
         elif "br_pct" in factor_clean:
             recommendations.append(
-                "Increased battery internal resistance leads to higher energy losses. "
-                "Reducing thermal and electrical stress helps slow degradation and maintain efficiency."
+                f"The battery resistance growth factor ({base_params.get('BR_pct', 'N/A')}%) indicates internal degradation effects. "
+    "Higher internal resistance reduces efficiency and increases energy losses. "
+    "Avoiding excessive heat and overcharging can help slow down this degradation."
             )
 
         # ---------------- ICE-SPECIFIC ----------------
         elif "cd" in factor_clean:
             recommendations.append(
-                "Aerodynamic drag strongly impacts fuel consumption at higher speeds. "
-                "Improving vehicle aerodynamics or maintaining steady speeds can significantly reduce fuel usage."
+                f"Your vehicle’s drag coefficient ({base_params.get('Cd', 'N/A')}) affects how it interacts with air at higher speeds. "
+    "Higher drag increases fuel consumption, particularly on highways. "
+    "Maintaining steady speeds and minimizing unnecessary acceleration helps reduce this effect."
             )
 
         elif "engine_eff" in factor_clean:
             recommendations.append(
-                "Engine efficiency determines how effectively fuel is converted into motion. "
-                "Regular servicing and proper engine tuning improve fuel economy and reduce losses."
+                f"The engine efficiency of your vehicle is estimated at {base_params.get('Engine_Eff', 'N/A')}%. "
+    "This determines how effectively fuel is converted into useful motion. "
+    "Regular servicing and proper engine tuning can significantly improve fuel economy."
             )
 
         elif "idle_fuel_lph" in factor_clean:
             recommendations.append(
-                "Fuel consumed during idling contributes to unnecessary energy waste. "
-                "Minimizing idle time helps conserve fuel and reduce emissions."
+                 f"Your vehicle consumes approximately {base_params.get('Idle_Fuel_Lph', 'N/A')} L/h while idling. "
+    "Extended idling leads to unnecessary fuel consumption without contributing to motion. "
+    "Reducing idle time can improve fuel efficiency and lower emissions."
             )
 
         # ---------------- FALLBACK ----------------
