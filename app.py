@@ -36,9 +36,9 @@ st.markdown("---")
 with st.expander("### 🚘 About This Application (Click to expand/collapse)", expanded=False):
     st.markdown("""
 
-This application is designed to simulate and analyze how vehicles consume energy or fuel under real driving conditions within Obafemi Awolowo University (OAU) campus.
+This application is designed to simulate and analyze how vehicles consume energy or fuel under real driving conditions.
 
-It uses a **representative drive cycle**, a recorded pattern of speed over time which reflects how vehicles actually move in a typical Nigerian environment (including stops, accelerations, and varying speeds).
+It uses a **representative drive cycle** (generated within Obafemi Awolowo University (OAU) campus), a recorded pattern of speed over time which reflects how vehicles actually move in a typical Nigerian environment (including stops, accelerations, and varying speeds).
 
 ---
 
