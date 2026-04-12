@@ -192,9 +192,6 @@ def integrate_fuel_for_cycle(cycle_df, params):
 
 # ------------------------------------------------------------
 # DECISION SUPPORT FUNCTION
-# ------------------------------------------------------------
-# DECISION SUPPORT FUNCTION (FIXED)
-# ------------------------------------------------------------
 def generate_recommendations(main_df, base_params):
     recommendations = []
 
@@ -535,7 +532,7 @@ with tabs[4]:
         st.subheader("Actionable Insights")
         recs = generate_recommendations(
     st.session_state["sensitivity_main"],
-    base_params   # 🔥 IMPORTANT
+    base_params  
 )
         for rec in recs:
             st.write(f"✅ {rec}")
